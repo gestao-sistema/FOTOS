@@ -1,5 +1,5 @@
-﻿window.MURAL_FOTOS = {
-    "gerado":  "2026-08-06 17:50:09",
+window.MURAL_FOTOS = {
+    "gerado":  "2026-08-06 18:16:51",
     "total":  343,
     "marcas":  {
                    "ALINARE":  [

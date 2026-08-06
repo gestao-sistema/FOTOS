@@ -290,8 +290,12 @@ $dados = [ordered]@{
 }
 
 $json = $dados | ConvertTo-Json -Depth 6
-$json | Out-File -FilePath (Join-Path $Saida 'fotos.json') -Encoding utf8
-"window.MURAL_FOTOS = $json;" | Out-File -FilePath (Join-Path $Saida 'fotos.js') -Encoding utf8
+
+# UTF-8 SEM BOM: com BOM, quem le o fotos.json com um parser mais rigoroso
+# (fora do navegador) engasga nos 3 bytes iniciais
+$utf8 = New-Object Text.UTF8Encoding($false)
+[IO.File]::WriteAllText((Join-Path $Saida 'fotos.json'), $json, $utf8)
+[IO.File]::WriteAllText((Join-Path $Saida 'fotos.js'), "window.MURAL_FOTOS = $json;", $utf8)
 
 # ---------------------------------------------------------------------
 # 4) resumo

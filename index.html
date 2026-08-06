@@ -14,7 +14,7 @@
 
   /* ---------- palco ---------- */
   #stage{position:fixed;inset:0;background:#0a1224}
-  .layer{position:absolute;inset:0;opacity:0;transition:opacity 1.2s ease}
+  .layer{position:absolute;inset:0;opacity:0;transition:opacity var(--fade,1.2s) ease}
   .layer.on{opacity:1}
   .bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(38px) brightness(.45);transform:scale(1.15)}
   .pic{position:absolute;inset:0;background-size:contain;background-position:center;background-repeat:no-repeat}
@@ -75,7 +75,8 @@
     // Marca nova em FOTOS\ que nao esteja aqui tambem ganha botao, no fim da fila.
     marcas: ["ALINARE", "GRACE", "NOVITAH"],
 
-    segundos: 8,            // tempo de cada foto
+    segundos: 3,            // tempo de cada foto
+    transicao: 0.8,         // duracao do cruzamento entre uma foto e a outra
     ordemAleatoria: false,  // true = embaralha as fotos
     efeitoZoom: true,       // zoom suave (Ken Burns)
     mostrarRelogio: false,  // relogio + data no canto
@@ -126,7 +127,11 @@
   const $  = function(id){ return document.getElementById(id); };
   const layers = [$('L0'), $('L1')];
   const prog = $('prog');
-  const dur = Math.max(2, CONFIG.segundos || 8);
+  const dur = Math.max(1, CONFIG.segundos || 8);
+  // o cruzamento nunca passa de metade do tempo da foto, senao ela quase nao
+  // fica parada na tela
+  const fade = Math.min(CONFIG.transicao == null ? 1.2 : CONFIG.transicao, dur / 2);
+  layers.forEach(function(l){ l.style.setProperty('--fade', fade + 's'); });
 
   let catalogo = {};      // { MARCA: [caminhos...] }
   let selecao  = [];      // marcas escolhidas
