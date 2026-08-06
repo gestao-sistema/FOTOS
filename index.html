@@ -18,6 +18,9 @@
   .layer.on{opacity:1}
   .bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(38px) brightness(.45);transform:scale(1.15)}
   .pic{position:absolute;inset:0;background-size:contain;background-position:center;background-repeat:no-repeat}
+  .vid{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0a1224;display:none}
+  .layer.video .vid{display:block}
+  .layer.video .bg, .layer.video .pic{display:none}
   .layer.on .pic.zoom{animation:kb var(--dur,8s) ease-out forwards}
   @keyframes kb{from{transform:scale(1.02)}to{transform:scale(1.10)}}
   #vin{position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 240px rgba(0,0,0,.5)}
@@ -117,14 +120,21 @@
     logoNome: "GRUPO AZIME",
     logoSub: "JOIAS QUE FICAM",
     atualizarMin: 5,        // re-checa novas fotos a cada X minutos (precisa do servidor)
-    manterTelaLigada: true  // impede o tablet de apagar a tela
+    manterTelaLigada: true, // impede o tablet de apagar a tela
+
+    // Video entra no meio das fotos, sem som (o navegador nao deixa comecar
+    // com audio sozinho). Ja vem cortado em 15s pelo Atualizar fotos.cmd;
+    // este numero e so a rede de seguranca, se o video travar no tablet.
+    videoLimiteSegundos: 20
   };
 </script>
 <script src="fotos.js"></script>
 
 <div id="stage">
-  <div class="layer" id="L0"><div class="bg"></div><div class="pic"></div></div>
-  <div class="layer" id="L1"><div class="bg"></div><div class="pic"></div></div>
+  <div class="layer" id="L0"><div class="bg"></div><div class="pic"></div>
+    <video class="vid" muted playsinline preload="auto"></video></div>
+  <div class="layer" id="L1"><div class="bg"></div><div class="pic"></div>
+    <video class="vid" muted playsinline preload="auto"></video></div>
 </div>
 <div id="vin"></div>
 <div id="prog"></div>
@@ -175,6 +185,7 @@
   let selecao  = [];      // marcas escolhidas
   let fotos    = [];      // playlist atual
   let idx = 0, cur = 0, timer = null, refreshTimer = null, rodando = false, wl = null;
+  let token = 0;          // identifica o item atual: impede avanco em dobro no video
 
   /* ---------------- utilidades ---------------- */
 
@@ -393,8 +404,35 @@
 
   /* ---------------- slideshow ---------------- */
 
+  // o que e video: a versao leve sai sempre em .mp4
+  function ehVideo(rel){ return /\.(mp4|webm|ogv)(\?|$)/i.test(rel); }
+
+  // barra de progresso acompanhando o tempo do item
+  function progresso(segundos){
+    if (!CONFIG.mostrarBarra) return;
+    prog.style.transition = 'none'; prog.style.width = '0';
+    requestAnimationFrame(function(){
+      prog.style.transition = 'width ' + segundos + 's linear';
+      prog.style.width = '100%';
+    });
+  }
+  // pre-carrega o proximo item, se for foto (video seria peso demais)
+  function preCarregar(){
+    const nx = fotos[idx];
+    if (nx && !ehVideo(nx)) { const p = new Image(); p.src = urlDe(nx); }
+  }
+  function pararVideoDe(L){
+    const v = L.querySelector('.vid');
+    if (!v) return;
+    v.onended = null; v.onerror = null;
+    try{ v.pause(); }catch(e){}
+    if (v.getAttribute('src')){ v.removeAttribute('src'); try{ v.load(); }catch(e){} }
+  }
+
   function mostrar(url){
     const prox = 1 - cur, L = layers[prox];
+    pararVideoDe(L);
+    L.classList.remove('video');
     L.querySelector('.bg').style.backgroundImage = 'url("' + url + '")';
     const pic = L.querySelector('.pic');
     pic.style.backgroundImage = 'url("' + url + '")';
@@ -403,43 +441,90 @@
     pic.style.animation = 'none'; void pic.offsetWidth; pic.style.animation = '';
     layers[cur].classList.remove('on');
     L.classList.add('on');
+    pararVideoDe(layers[cur]);
     cur = prox;
 
-    if (CONFIG.mostrarBarra){
-      prog.style.transition = 'none'; prog.style.width = '0';
-      requestAnimationFrame(function(){
-        prog.style.transition = 'width ' + dur + 's linear';
-        prog.style.width = '100%';
-      });
-    }
-    // pre-carrega a proxima
-    const nx = fotos[idx];
-    if (nx) { const p = new Image(); p.src = urlDe(nx); }
+    progresso(dur);
+    preCarregar();
   }
 
+  // video: entra sem som (navegador nao deixa som automatico) e, ao terminar,
+  // ele mesmo chama o proximo item - nao espera o relogio das fotos
+  function mostrarVideo(url){
+    const prox = 1 - cur, L = layers[prox];
+    const v = L.querySelector('.vid');
+    if (!v) return false;
+
+    const meuToken = ++token;
+    L.classList.add('video');
+    L.querySelector('.bg').style.backgroundImage = '';
+    L.querySelector('.pic').style.backgroundImage = '';
+
+    v.onended = function(){ seguir(meuToken); };
+    v.onerror = function(){ seguir(meuToken); };
+    v.muted = true; v.loop = false;
+    v.setAttribute('src', url);
+    try{ v.currentTime = 0; }catch(e){}
+    try{ const p = v.play(); if (p && p.catch) p.catch(function(){ }); }catch(e){}
+
+    layers[cur].classList.remove('on');
+    L.classList.add('on');
+    pararVideoDe(layers[cur]);
+    cur = prox;
+
+    const limite = Math.max(3, CONFIG.videoLimiteSegundos || 20);
+    progresso(limite);
+    // rede de seguranca: se o video travar e 'ended' nunca chegar
+    clearTimeout(timer);
+    timer = setTimeout(function(){ seguir(meuToken); }, limite * 1000);
+    preCarregar();
+    return true;
+  }
+
+  // avanca uma vez so, mesmo se 'ended' e a rede de seguranca dispararem juntos
+  function seguir(meuToken){
+    if (meuToken !== token || !rodando) return;
+    clearTimeout(timer);
+    passo();
+  }
+
+  // devolve 'foto', 'video' ou null
   async function proxima(){
-    if (!fotos.length) return;
+    if (!fotos.length) return null;
     let tentativas = 0;
     while (tentativas < Math.min(fotos.length, 10)){
       const rel = fotos[idx];
       idx = (idx + 1) % fotos.length;
+
+      if (ehVideo(rel)){
+        if (mostrarVideo(urlDe(rel))) return 'video';
+        tentativas++;
+        continue;
+      }
       try{
         const url = await carregar(urlDe(rel));
+        token++;
         mostrar(url);
-        return;
+        return 'foto';
       }catch(e){
-        // foto que nao abre (arquivo movido, formato nao suportado): tira da lista
+        // arquivo que nao abre (movido, formato nao suportado): tira da lista
         fotos = fotos.filter(function(f){ return f !== rel; });
-        if (!fotos.length){ pararLoop(); voltarInicio('As fotos da seleção não abriram.'); return; }
+        if (!fotos.length){ pararLoop(); voltarInicio('As fotos da seleção não abriram.'); return null; }
         idx = idx % fotos.length;
         tentativas++;
       }
     }
+    return null;
   }
 
+  // foto: o relogio marca a troca. video: quem marca e o fim dele.
+  async function passo(){
+    const tipo = await proxima();
+    if (tipo === 'foto') agendar();
+  }
   function agendar(){
     clearTimeout(timer);
-    timer = setTimeout(async function(){ await proxima(); agendar(); }, dur * 1000);
+    timer = setTimeout(passo, dur * 1000);
   }
   function pararLoop(){ clearTimeout(timer); timer = null; }
 
@@ -452,16 +537,16 @@
     $('inicio').style.display = 'none';
     try{ const el = document.documentElement; if (el.requestFullscreen) el.requestFullscreen(); }catch(e){}
     manterAcordado();
-    await proxima();
-    agendar();
-    acordar();   // mostra as setas por alguns segundos, para quem nao sabe que existem
+    await passo();   // passo() so agenda o relogio se o item for foto
+    acordar();       // mostra as setas por alguns segundos, para quem nao sabe que existem
   }
 
   function voltarInicio(msg){
     rodando = false;
+    token++;                 // invalida qualquer 'ended' de video que ainda venha
     pararLoop();
     document.body.classList.remove('rodando');
-    layers.forEach(function(l){ l.classList.remove('on'); });
+    layers.forEach(function(l){ l.classList.remove('on'); pararVideoDe(l); l.classList.remove('video'); });
     $('erro').textContent = msg || '';
     $('inicio').style.display = 'grid';
     pintar();
@@ -523,12 +608,13 @@
   }
   document.addEventListener('pointermove', acordar, {passive:true});
 
-  async function pular(passo){
+  // avanca/volta um item na mao, cortando video que esteja tocando
+  async function pular(direcao){
     if (!fotos.length) return;
+    token++;
     pararLoop();
-    if (passo < 0) idx = (idx - 2 + fotos.length) % fotos.length;
-    await proxima();
-    agendar();
+    if (direcao < 0) idx = (idx - 2 + fotos.length) % fotos.length;
+    await passo();
   }
 
   $('btProx').addEventListener('click', function(e){ e.stopPropagation(); acordar(); pular(1); });
@@ -558,10 +644,7 @@
     const dx = e.changedTouches[0].clientX - x0;
     x0 = null;
     if (Math.abs(dx) < 70) return;
-    pararLoop();
-    if (dx < 0){ await proxima(); }
-    else { idx = (idx - 2 + fotos.length) % fotos.length; await proxima(); }
-    agendar();
+    await pular(dx < 0 ? 1 : -1);
   }, {passive:true});
 
   document.addEventListener('keydown', async function(e){
@@ -577,8 +660,8 @@
       return;
     }
     if (!rodando || !fotos.length) return;
-    if (e.key === 'ArrowRight'){ pararLoop(); await proxima(); agendar(); }
-    if (e.key === 'ArrowLeft'){ pararLoop(); idx = (idx - 2 + fotos.length) % fotos.length; await proxima(); agendar(); }
+    if (e.key === 'ArrowRight'){ await pular(1); }
+    if (e.key === 'ArrowLeft'){ await pular(-1); }
   });
 
   /* ---------------- start ---------------- */

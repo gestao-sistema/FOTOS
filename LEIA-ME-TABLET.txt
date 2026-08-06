@@ -57,8 +57,8 @@ Precisa do link de outra marca (ALINARE sozinha, por exemplo)?
     "Iniciar mural.cmd" — veja a seção NO TABLET mais abaixo.)
 
 JÁ RODANDO, os botões na tela:
-   ❮  seta na lateral esquerda  → foto anterior
-   ❯  seta na lateral direita   → próxima foto (para passar mais rápido)
+   ❮  seta na lateral esquerda  → item anterior
+   ❯  seta na lateral direita   → próximo (passa mais rápido; corta vídeo)
    ◀ Início, no topo da tela    → volta pra escolha de marcas
 
    Eles ficam apagadinhos para não atrapalhar a foto, e acendem
@@ -75,15 +75,17 @@ A escolha de marcas fica salva: se o tablet reiniciar, volta na mesma.
 
 ┌─ O QUE ENTRA E O QUE NÃO ENTRA ─────────────────────────────────┐
 
-ENTRA:   .jpg .jpeg .png .webp .avif .gif
+FOTO entra:   .jpg .jpeg .png .webp .avif .gif
+VÍDEO entra:  .mp4 .mov .avi .mkv .m4v  (cortado em 15s, SEM SOM)
 
-NÃO ENTRA (de propósito) — qualquer foto dentro de subpasta cujo
+NÃO ENTRA (de propósito) — qualquer arquivo dentro de subpasta cujo
 nome contenha:
         SEM TRATAR  ·  SEM EDIÇÃO  ·  NÃO TRATADA
-        NÃO USAR    ·  VÍDEO/VÍDEOS
-        RAW  ·  BRUTA  ·  DESCARTE  ·  LIXO
+        NÃO USAR    ·  RAW  ·  BRUTA  ·  DESCARTE  ·  LIXO
 
-   Vídeos (.mp4/.mov) também ficam de fora — o mural é só de fotos.
+   As pastas VÍDEO/VÍDEOS agora ENTRAM, mas só os vídeos delas — foto
+   solta dentro de pasta de vídeo é ignorada (costuma ser miniatura ou
+   quadro exportado, não material de mural).
 
    Ou seja: você não precisa separar nada à mão. Deixe o material cru
    nas pastas "SEM TRATAR" como já faz, que ele se exclui sozinho.
@@ -91,6 +93,7 @@ nome contenha:
 
    Quer mudar essa lista? Está em atualizar-fotos.ps1, na variável
    $Ignorar (uma linha por trecho de nome).
+   Não quer vídeo nenhum? Rode:  atualizar-fotos.ps1 -SemVideo
 
 
 ┌─ FOTOS LEVES (importante) ──────────────────────────────────────┐
@@ -110,6 +113,33 @@ Os ORIGINAIS em FOTOS não são tocados.
      -MaxPx 2560
    • A pasta _otimizadas pode ser apagada a qualquer momento; ela se
      refaz na próxima execução.
+
+
+┌─ VÍDEO ─────────────────────────────────────────────────────────┐
+
+Vídeo entra no meio das fotos. Cada um é convertido para:
+   • no máximo 15 segundos (o começo do vídeo)
+   • lado maior de 1280 px
+   • SEM SOM — o navegador proíbe começar áudio sozinho, e mural com
+     som em loop numa loja seria insuportável de qualquer forma
+
+Resultado: vídeo de 68 MB vira ~1,7 MB. Os 62 vídeos, que somam
+2193 MB de originais, ficam em ~95 MB no site.
+
+Quando um vídeo entra, o mural toca ele INTEIRO (até os 15s) e só
+então passa para o próximo item — não corta em 3 segundos como foto.
+A seta ❯ corta o vídeo e vai para o próximo na hora.
+
+Quem faz a conversão é o ffmpeg, que está em _ferramentas\ (versão
+portátil, não foi instalado no Windows). Se apagar essa pasta, os
+vídeos deixam de entrar e o script avisa. Para trazer de volta, baixe
+"ffmpeg release essentials" em gyan.dev/ffmpeg/builds e descompacte
+em _ferramentas\.
+
+Ajustes (no Atualizar fotos.cmd, ou chamando o .ps1):
+   -VideoSegundos 30      corta em 30s em vez de 15
+   -VideoLadoMaior 1920   mais nitidez, arquivo maior
+   -SemVideo              ignora vídeo, volta a ser só fotos
 
 
 ┌─ NO TABLET · JEITO 1: pelo site (RECOMENDADO) ──────────────────┐

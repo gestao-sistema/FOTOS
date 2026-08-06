@@ -13,8 +13,11 @@
 param(
   [string]$Raiz,
   [string]$Saida,
-  [int]$MaxPx = 1920,        # maior lado da copia leve (tablet/TV Full HD)
+  [int]$MaxPx = 1920,        # maior lado da copia leve da FOTO
   [int]$Qualidade = 82,      # qualidade JPEG da copia leve
+  [int]$VideoSegundos = 15,  # cada video entra cortado neste tempo
+  [int]$VideoLadoMaior = 1280,
+  [switch]$SemVideo,         # ignora os videos (so fotos)
   [switch]$SemOtimizar,      # usa os originais (pesado - so no PC)
   [switch]$Silencioso
 )
@@ -28,17 +31,19 @@ if (-not $Saida) { $Saida = $Aqui }
 $NomeCache = '_otimizadas'
 
 # Extensoes que o navegador exibe
-$ExtOk = @('.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif')
+$ExtFoto  = @('.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif')
+$ExtVideo = @('.mp4', '.mov', '.avi', '.mkv', '.m4v', '.webm')
 
 # Pastas ignoradas: se QUALQUER pasta do caminho casar com um destes
-# trechos, a foto fica fora do mural (comparacao sem acento/maiuscula).
+# trechos, o arquivo fica fora do mural (comparacao sem acento/maiuscula).
+# Atencao: 'video' NAO esta aqui - as pastas de video entram, so que delas
+# se aproveitam apenas os videos, nao as imagens soltas.
 $Ignorar = @(
   @{ trecho = 'sem trat';   motivo = 'sem tratamento' },
   @{ trecho = 'semtratar';  motivo = 'sem tratamento' },
   @{ trecho = 'nao tratad'; motivo = 'sem tratamento' },
   @{ trecho = 'sem edi';    motivo = 'sem edicao' },
   @{ trecho = 'nao usar';   motivo = 'marcada como nao usar' },
-  @{ trecho = 'video';      motivo = 'pasta de video' },
   @{ trecho = 'raw';        motivo = 'arquivo bruto' },
   @{ trecho = 'bruta';      motivo = 'arquivo bruto' },
   @{ trecho = 'descarte';   motivo = 'descarte' },
@@ -98,15 +103,37 @@ foreach ($f in (Get-ChildItem -LiteralPath $raizFull -Recurse -File -ErrorAction
     continue
   }
 
-  $ext = $f.Extension.ToLowerInvariant()
-  if ($ExtOk -notcontains $ext) {
+  $ext  = $f.Extension.ToLowerInvariant()
+  $tipo = if ($ExtFoto -contains $ext) { 'foto' } elseif ($ExtVideo -contains $ext) { 'video' } else { $null }
+
+  if (-not $tipo) {
     if (-not $semSuporte.ContainsKey($ext)) { $semSuporte[$ext] = 0 }
     $semSuporte[$ext]++
     continue
   }
+  if ($tipo -eq 'video' -and $SemVideo) {
+    if (-not $ignorados.ContainsKey('video desligado')) { $ignorados['video desligado'] = 0 }
+    $ignorados['video desligado']++
+    continue
+  }
+
+  # dentro de pasta chamada VIDEO/VIDEOS so o video interessa: imagem ali
+  # normalmente e miniatura ou quadro solto, nao material do mural
+  if ($tipo -eq 'foto' -and $parts.Count -gt 1) {
+    $ehPastaDeVideo = $false
+    foreach ($seg in $parts[0..($parts.Count - 2)]) {
+      if ((Remove-Acento $seg) -like '*video*') { $ehPastaDeVideo = $true; break }
+    }
+    if ($ehPastaDeVideo) {
+      if (-not $ignorados.ContainsKey('imagem em pasta de video')) { $ignorados['imagem em pasta de video'] = 0 }
+      $ignorados['imagem em pasta de video']++
+      continue
+    }
+  }
 
   [void]$selecionadas.Add([pscustomobject]@{
     arquivo = $f
+    tipo    = $tipo
     rel     = ($rel -replace '\\', '/')
     marca   = if ($parts.Count -gt 1) { $parts[0] } else { 'GERAL' }
     chave   = (Chave-Natural $rel)
@@ -119,25 +146,27 @@ foreach ($f in (Get-ChildItem -LiteralPath $raizFull -Recurse -File -ErrorAction
 #     foto.jpeg) virariam o mesmo .jpg: uma sobrescreveria a outra e
 #     sumiria do mural. Nesse caso o nome carrega a extensao original.
 # ---------------------------------------------------------------------
-function Rel-Destino([string]$rel, [bool]$comExtensao) {
+function Rel-Destino([string]$rel, [bool]$comExtensao, [string]$extNova) {
   $ext = [IO.Path]::GetExtension($rel)
   $sem = $rel.Substring(0, $rel.Length - $ext.Length)
-  if ($comExtensao) { return ($sem + '_' + $ext.TrimStart('.').ToLowerInvariant() + '.jpg') }
-  return ($sem + '.jpg')
+  if ($comExtensao) { return ($sem + '_' + $ext.TrimStart('.').ToLowerInvariant() + $extNova) }
+  return ($sem + $extNova)
 }
+function Ext-Destino($it) { if ($it.tipo -eq 'video') { '.mp4' } else { '.jpg' } }
 
 $quantos = @{}
 foreach ($it in $selecionadas) {
-  $k = (Rel-Destino $it.rel $false).ToLowerInvariant()
+  $k = (Rel-Destino $it.rel $false (Ext-Destino $it)).ToLowerInvariant()
   if (-not $quantos.ContainsKey($k)) { $quantos[$k] = 0 }
   $quantos[$k]++
 }
 $colisoes = 0
 foreach ($it in $selecionadas) {
-  $k = (Rel-Destino $it.rel $false).ToLowerInvariant()
+  $extN = Ext-Destino $it
+  $k = (Rel-Destino $it.rel $false $extN).ToLowerInvariant()
   $conflito = ($quantos[$k] -gt 1)
   if ($conflito) { $colisoes++ }
-  $it | Add-Member -NotePropertyName destRel -NotePropertyValue (Rel-Destino $it.rel $conflito) -Force
+  $it | Add-Member -NotePropertyName destRel -NotePropertyValue (Rel-Destino $it.rel $conflito $extN) -Force
 }
 
 # ---------------------------------------------------------------------
@@ -146,11 +175,26 @@ foreach ($it in $selecionadas) {
 $mapaLeve  = @{}   # rel original -> caminho web da copia leve
 $feitas = 0; $reaproveitadas = 0; $falhas = 0; $pesoOrig = 0; $pesoLeve = 0
 
+# ffmpeg: procura na pasta _ferramentas do projeto e depois no PATH
+$ffmpeg = $null
+if (-not $SemVideo) {
+  $ffLocal = Get-ChildItem (Join-Path $Aqui '_ferramentas') -Recurse -Filter 'ffmpeg.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($ffLocal) { $ffmpeg = $ffLocal.FullName }
+  else {
+    $ffPath = Get-Command ffmpeg -ErrorAction SilentlyContinue
+    if ($ffPath) { $ffmpeg = $ffPath.Source }
+  }
+}
+$videosSemFfmpeg = 0
+
 if (-not $SemOtimizar) {
   Add-Type -AssemblyName System.Drawing
   $encJpeg = [System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() | Where-Object { $_.MimeType -eq 'image/jpeg' }
   $encPar  = New-Object System.Drawing.Imaging.EncoderParameters(1)
   $encPar.Param[0] = New-Object System.Drawing.Imaging.EncoderParameter([System.Drawing.Imaging.Encoder]::Quality, [int64]$Qualidade)
+
+  # lado maior do video, sem esticar quem ja e pequeno
+  $filtroVideo = "scale='if(gt(iw,ih),$VideoLadoMaior,-2)':'if(gt(iw,ih),-2,$VideoLadoMaior)'"
 
   $i = 0
   foreach ($it in $selecionadas) {
@@ -175,10 +219,41 @@ if (-not $SemOtimizar) {
       }
     }
 
-    if (-not $Silencioso -and ($i % 10 -eq 0 -or $i -eq 1)) {
-      Write-Host ("  otimizando {0}/{1}..." -f $i, $selecionadas.Count) -ForegroundColor DarkGray
+    if (-not $Silencioso -and ($i % 10 -eq 0 -or $i -eq 1 -or $it.tipo -eq 'video')) {
+      $qual = if ($it.tipo -eq 'video') { 'video: ' + (Split-Path $it.rel -Leaf) } else { "{0}/{1}" -f $i, $selecionadas.Count }
+      Write-Host ("  otimizando $qual") -ForegroundColor DarkGray
     }
 
+    # ---- VIDEO: corta em N segundos, reduz o lado maior e tira o audio ----
+    if ($it.tipo -eq 'video') {
+      if (-not $ffmpeg) {
+        $videosSemFfmpeg++
+        continue
+      }
+      try {
+        & $ffmpeg -y -hide_banner -loglevel error `
+          -i $origem.FullName -t $VideoSegundos -an `
+          -vf $filtroVideo `
+          -c:v libx264 -preset veryfast -crf 26 -pix_fmt yuv420p -movflags +faststart `
+          $destino 2>$null | Out-Null
+
+        if ((Test-Path -LiteralPath $destino) -and (Get-Item -LiteralPath $destino).Length -gt 0) {
+          $mapaLeve[$it.rel] = ($NomeCache + '/' + $relJpg)
+          $pesoLeve += (Get-Item -LiteralPath $destino).Length
+          $feitas++
+        } else {
+          $falhas++
+          if (-not $Silencioso) { Write-Host ("  [aviso] video nao converteu: {0}" -f $it.rel) -ForegroundColor DarkYellow }
+        }
+      }
+      catch {
+        $falhas++
+        if (-not $Silencioso) { Write-Host ("  [aviso] video nao converteu: {0}" -f $it.rel) -ForegroundColor DarkYellow }
+      }
+      continue
+    }
+
+    # ---- FOTO ----
     $img = $null; $bmp = $null; $g = $null
     try {
       $img = [System.Drawing.Image]::FromFile($origem.FullName)
@@ -265,10 +340,17 @@ if (-not $SemOtimizar -and (Test-Path -LiteralPath $cacheDir)) {
 # 3) monta a lista
 # ---------------------------------------------------------------------
 $porMarca = @{}
+$semCopia = 0
 foreach ($it in ($selecionadas | Sort-Object chave)) {
+  $usaLeve = $mapaLeve.ContainsKey($it.rel)
+
+  # sem copia leve, o arquivo NAO entra: os originais ficam fora do site
+  # (.gitignore), entao um endereco apontando para eles daria erro no tablet.
+  # Excecao: modo -SemOtimizar, que so serve para uso local no PC.
+  if (-not $usaLeve -and -not $SemOtimizar) { $semCopia++; continue }
+
   if (-not $porMarca.ContainsKey($it.marca)) { $porMarca[$it.marca] = New-Object Collections.ArrayList }
 
-  $usaLeve = $mapaLeve.ContainsKey($it.rel)
   $web     = if ($usaLeve) { $mapaLeve[$it.rel] } else { $nomeRaiz + '/' + $it.rel }
   $noDisco = if ($usaLeve) { Join-Path $Saida ($mapaLeve[$it.rel] -replace '/', '\') } else { $it.arquivo.FullName }
 
@@ -315,13 +397,22 @@ $utf8 = New-Object Text.UTF8Encoding($false)
 # 4) resumo
 # ---------------------------------------------------------------------
 if (-not $Silencioso) {
+  $qtVideo = ($selecionadas | Where-Object { $_.tipo -eq 'video' -and $mapaLeve.ContainsKey($_.rel) }).Count
   Write-Host ''
-  Write-Host '  MURAL AZIME - fotos preparadas' -ForegroundColor Cyan
+  Write-Host '  MURAL AZIME - fotos e videos preparados' -ForegroundColor Cyan
   Write-Host '  --------------------------------------------'
   foreach ($k in $marcas.Keys) {
-    Write-Host ("  {0,-16} {1,4} fotos" -f $k, $marcas[$k].Count) -ForegroundColor Green
+    Write-Host ("  {0,-16} {1,4} itens" -f $k, $marcas[$k].Count) -ForegroundColor Green
   }
-  Write-Host ("  {0,-16} {1,4} fotos no mural" -f 'TOTAL', $total) -ForegroundColor Green
+  Write-Host ("  {0,-16} {1,4} no mural  ({2} fotos + {3} videos)" -f 'TOTAL', $total, ($total - $qtVideo), $qtVideo) -ForegroundColor Green
+  if ($videosSemFfmpeg -gt 0) {
+    Write-Host ''
+    Write-Host ("  {0} videos ficaram de fora: falta o ffmpeg." -f $videosSemFfmpeg) -ForegroundColor Red
+    Write-Host '  Coloque o ffmpeg.exe em _ferramentas\ (ou no PATH) e rode de novo.' -ForegroundColor Yellow
+  }
+  if ($semCopia -gt 0 -and $videosSemFfmpeg -eq 0) {
+    Write-Host ("  {0} arquivos ficaram de fora por nao gerar copia leve." -f $semCopia) -ForegroundColor DarkYellow
+  }
 
   if ($ignorados.Count) {
     Write-Host ''

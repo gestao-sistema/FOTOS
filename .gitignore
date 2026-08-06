@@ -6,10 +6,17 @@
 # ---------------------------------------------------------------
 FOTOS/
 
-# videos (o mural e so de fotos)
+# videos ORIGINAIS (2,2 GB, um deles com 80 MB) ficam so no PC.
+# As versoes leves em _otimizadas/ SOBEM - por isso a excecao logo abaixo.
 *.mp4
 *.mov
 *.avi
+*.mkv
+*.m4v
+!_otimizadas/**/*.mp4
+
+# ffmpeg portatil (~150 MB): ferramenta, nao faz parte do site
+_ferramentas/
 
 # configuracao local de ferramentas
 .claude/
