@@ -114,6 +114,33 @@ foreach ($f in (Get-ChildItem -LiteralPath $raizFull -Recurse -File -ErrorAction
 }
 
 # ---------------------------------------------------------------------
+# 1b) nome do arquivo de destino de cada copia leve
+#     Duas fotos na MESMA pasta que so diferem na extensao (foto.jpg e
+#     foto.jpeg) virariam o mesmo .jpg: uma sobrescreveria a outra e
+#     sumiria do mural. Nesse caso o nome carrega a extensao original.
+# ---------------------------------------------------------------------
+function Rel-Destino([string]$rel, [bool]$comExtensao) {
+  $ext = [IO.Path]::GetExtension($rel)
+  $sem = $rel.Substring(0, $rel.Length - $ext.Length)
+  if ($comExtensao) { return ($sem + '_' + $ext.TrimStart('.').ToLowerInvariant() + '.jpg') }
+  return ($sem + '.jpg')
+}
+
+$quantos = @{}
+foreach ($it in $selecionadas) {
+  $k = (Rel-Destino $it.rel $false).ToLowerInvariant()
+  if (-not $quantos.ContainsKey($k)) { $quantos[$k] = 0 }
+  $quantos[$k]++
+}
+$colisoes = 0
+foreach ($it in $selecionadas) {
+  $k = (Rel-Destino $it.rel $false).ToLowerInvariant()
+  $conflito = ($quantos[$k] -gt 1)
+  if ($conflito) { $colisoes++ }
+  $it | Add-Member -NotePropertyName destRel -NotePropertyValue (Rel-Destino $it.rel $conflito) -Force
+}
+
+# ---------------------------------------------------------------------
 # 2) copias leves
 # ---------------------------------------------------------------------
 $mapaLeve  = @{}   # rel original -> caminho web da copia leve
@@ -132,7 +159,7 @@ if (-not $SemOtimizar) {
     $pesoOrig += $origem.Length
 
     # destino: mesmo caminho relativo dentro de _otimizadas, sempre .jpg
-    $relJpg  = [IO.Path]::ChangeExtension($it.rel, '.jpg')
+    $relJpg  = $it.destRel
     $destino = Join-Path $cacheDir ($relJpg -replace '/', '\')
     $pastaD  = Split-Path -Parent $destino
     if (-not (Test-Path -LiteralPath $pastaD)) { New-Item -ItemType Directory -Path $pastaD -Force | Out-Null }
@@ -210,6 +237,31 @@ if (-not $SemOtimizar) {
 }
 
 # ---------------------------------------------------------------------
+# 2b) apaga copias leves que nao correspondem mais a nenhuma foto
+#     (foto removida do OneDrive, renomeada, ou movida para SEM TRATAR).
+#     Mexe SO dentro de _otimizadas, que e refeita quando precisar.
+# ---------------------------------------------------------------------
+$orfaos = 0
+if (-not $SemOtimizar -and (Test-Path -LiteralPath $cacheDir)) {
+  $esperados = @{}
+  foreach ($it in $selecionadas) {
+    $esperados[(Join-Path $cacheDir ($it.destRel -replace '/', '\')).ToLowerInvariant()] = $true
+  }
+  foreach ($f in (Get-ChildItem -LiteralPath $cacheDir -Recurse -File -ErrorAction SilentlyContinue)) {
+    if (-not $esperados.ContainsKey($f.FullName.ToLowerInvariant())) {
+      Remove-Item -LiteralPath $f.FullName -Force -ErrorAction SilentlyContinue
+      $orfaos++
+    }
+  }
+  # pastas que ficaram vazias
+  foreach ($d in (Get-ChildItem -LiteralPath $cacheDir -Recurse -Directory -ErrorAction SilentlyContinue | Sort-Object { $_.FullName.Length } -Descending)) {
+    if (-not (Get-ChildItem -LiteralPath $d.FullName -Force -ErrorAction SilentlyContinue)) {
+      Remove-Item -LiteralPath $d.FullName -Force -ErrorAction SilentlyContinue
+    }
+  }
+}
+
+# ---------------------------------------------------------------------
 # 3) monta a lista
 # ---------------------------------------------------------------------
 $porMarca = @{}
@@ -271,6 +323,13 @@ if (-not $Silencioso) {
     Write-Host ''
     Write-Host '  Copias leves para o tablet:' -ForegroundColor Cyan
     Write-Host ("    {0} novas, {1} reaproveitadas, {2} falhas" -f $feitas, $reaproveitadas, $falhas)
+    if ($colisoes -gt 0) {
+      Write-Host ("    {0} com nome repetido em extensoes diferentes (ex.: foto.jpg + foto.jpeg)" -f $colisoes) -ForegroundColor DarkYellow
+      Write-Host '      -> essas ganharam a extensao no nome para nenhuma sumir' -ForegroundColor DarkGray
+    }
+    if ($orfaos -gt 0) {
+      Write-Host ("    {0} copias antigas apagadas (foto removida ou renomeada na origem)" -f $orfaos) -ForegroundColor DarkGray
+    }
     if ($pesoOrig -gt 0) {
       Write-Host ("    {0} MB de originais  ->  {1} MB no mural" -f [math]::Round($pesoOrig/1MB), [math]::Round($pesoLeve/1MB)) -ForegroundColor Green
     }
