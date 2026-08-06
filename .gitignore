@@ -1,0 +1,19 @@
+# ---------------------------------------------------------------
+#  Fotos ORIGINAIS de estudio (~8 GB, arquivos de 10 a 90 MB)
+#  Nao vao para o GitHub: o limite e de 2 GB por push e 100 MB por
+#  arquivo. Elas ficam so no PC / OneDrive.
+#  O mural usa as copias leves da pasta _otimizadas, que SOBEM.
+# ---------------------------------------------------------------
+FOTOS/
+
+# videos (o mural e so de fotos)
+*.mp4
+*.mov
+*.avi
+
+# configuracao local de ferramentas
+.claude/
+
+# lixo do Windows
+Thumbs.db
+desktop.ini

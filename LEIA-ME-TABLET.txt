@@ -1,0 +1,137 @@
+╔══════════════════════════════════════════════════════════════════╗
+   MURAL AZIME · versão com escolha de marca (ALINARE/GRACE/NOVITAH)
+╚══════════════════════════════════════════════════════════════════╝
+
+Arquivo do mural:  mural.html
+(os antigos index.html e index-offline.html continuam aí, mas pode
+ esquecê-los — este novo substitui os dois)
+
+
+┌─ COMO USAR NO DIA A DIA ────────────────────────────────────────┐
+
+1) Jogue as fotos em:   FOTOS\NOME-DA-MARCA\...
+   Ex.:  FOTOS\ALINARE\POCKET 5\foto.jpg
+         FOTOS\NOVITAH\CAMPANHA\foto.jpg
+   Pode ter quantas subpastas quiser, com qualquer nome de arquivo
+   (não precisa mais numerar 1.jpg, 2.jpg).
+
+2) Duplo-clique em:   Iniciar mural.cmd
+
+3) Escolha as marcas na tela (ALINARE, GRACE, NOVITAH ou TODAS) e
+   toque em "▶ Iniciar". Pronto — passa sozinho, em loop, pra sempre.
+
+Já rodando:
+   • toque 3 vezes na tela  → volta pra escolha de marcas
+   • arraste pro lado       → próxima / anterior
+   • teclado: F = tela cheia, → ← navegam, Esc = voltar, i = info
+
+A escolha de marcas fica salva: se o tablet reiniciar, volta na mesma.
+
+
+┌─ O QUE ENTRA E O QUE NÃO ENTRA ─────────────────────────────────┐
+
+ENTRA:   .jpg .jpeg .png .webp .avif .gif
+
+NÃO ENTRA (de propósito) — qualquer foto dentro de subpasta cujo
+nome contenha:
+        SEM TRATAR  ·  SEM EDIÇÃO  ·  NÃO TRATADA
+        NÃO USAR    ·  VÍDEO/VÍDEOS
+        RAW  ·  BRUTA  ·  DESCARTE  ·  LIXO
+
+   Vídeos (.mp4/.mov) também ficam de fora — o mural é só de fotos.
+
+   Ou seja: você não precisa separar nada à mão. Deixe o material cru
+   nas pastas "SEM TRATAR" como já faz, que ele se exclui sozinho.
+   Pastas "ESTILIZADAS" entram normalmente.
+
+   Quer mudar essa lista? Está em atualizar-fotos.ps1, na variável
+   $Ignorar (uma linha por trecho de nome).
+
+
+┌─ FOTOS LEVES (importante) ──────────────────────────────────────┐
+
+Suas fotos são de estúdio: ~11 MB e até 6795x8138 pixels cada.
+Nesse tamanho o tablet trava (uma só ocupa ~120 MB de memória) e a
+Wi-Fi não dá conta.
+
+Por isso o script gera cópias leves na pasta "_otimizadas"
+(1920 px, ~400 KB cada). O mural usa essas cópias.
+Os ORIGINAIS em FOTOS não são tocados.
+
+   • Adicionou fotos novas? Rode "Atualizar fotos.cmd" — ele só
+     processa as novas, as antigas já ficam prontas.
+   • Quer mais nitidez (TV 4K)?  no Atualizar fotos.cmd troque para
+     -MaxPx 2560
+   • A pasta _otimizadas pode ser apagada a qualquer momento; ela se
+     refaz na próxima execução.
+
+
+┌─ NO TABLET (pela Wi-Fi) ────────────────────────────────────────┐
+
+1) No PC, duplo-clique em "Iniciar mural.cmd".
+   Ele mostra dois endereços — anote o "No TABLET", algo como:
+        http://192.168.21.160:5500/mural.html
+
+2) No tablet (mesma Wi-Fi do PC), abra esse endereço no Chrome.
+
+3) Na primeira vez o Windows pergunta sobre o Firewall:
+   marque "Redes privadas" e permita.
+
+ATENÇÃO: essa janela preta do "Iniciar mural.cmd" precisa ficar
+ABERTA no PC — é ela que serve as fotos pro tablet. Se fechar, o
+tablet para. (No PC mesmo, o mural funciona sem ela: duplo-clique
+direto no mural.html.)
+
+Enquanto está aberta, ela revê a pasta FOTOS a cada minuto: foto
+que você adicionar aparece no mural sozinha, sem mexer no tablet.
+
+
+┌─ PRA RODAR 24H SEM APAGAR A TELA ───────────────────────────────┐
+
+  • Android: instale "Fully Kiosk Browser", aponte pro endereço do
+    passo 1, ative tela cheia + "manter tela ligada". Ele reabre
+    sozinho quando o tablet liga.
+  • O mural já pede pro Android não apagar a tela (Wake Lock), mas
+    o Fully Kiosk é mais garantido pra 24h.
+  • Deixe o tablet na tomada.
+
+
+┌─ AJUSTES DO VISUAL ─────────────────────────────────────────────┐
+
+Abra mural.html no VS Code, seção "CONFIGURAÇÕES" no topo:
+
+  marcas: ["ALINARE","GRACE","NOVITAH"]
+        os botões que aparecem SEMPRE, nessa ordem. Marca sem foto na
+        pasta fica no botão apagado, escrito "aguardando fotos", e se
+        acende sozinha quando você copiar as fotos dela.
+        Marca nova em FOTOS\ que não esteja nessa lista também ganha
+        botão automaticamente, no fim da fila.
+
+  segundos: 8           tempo de cada foto
+  ordemAleatoria: false  true = embaralha
+  efeitoZoom: true      zoom suave em cada foto
+  mostrarRelogio: false relógio + data no canto
+  mostrarLogo: false    logo GRUPO AZIME no canto
+  mostrarBarra: false   barrinha de progresso no topo
+  atualizarMin: 5       de quanto em quanto tempo busca fotos novas
+
+(relógio, logo e barra estão DESLIGADOS: só a foto na tela, como
+ você pediu. Troque false por true se quiser algum de volta.)
+
+
+┌─ PROBLEMAS ─────────────────────────────────────────────────────┐
+
+"Lista de fotos não encontrada"
+      → rode "Atualizar fotos.cmd" uma vez.
+
+"Nenhuma foto encontrada"
+      → as fotos precisam estar em FOTOS\MARCA\... ; confira se não
+        estão todas dentro de pastas "SEM TRATAR".
+
+O tablet não abre o endereço
+      → PC e tablet na mesma Wi-Fi? Firewall liberado? A janela
+        preta está aberta no PC? O IP do PC pode ter mudado — rode
+        o "Iniciar mural.cmd" de novo e veja o endereço novo.
+
+Uma marca não aparece na tela de escolha
+      → só aparecem marcas que têm ao menos 1 foto aproveitável.

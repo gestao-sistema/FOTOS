@@ -1,0 +1,70 @@
+╔════════════════════════════════════════════════════════════════╗
+   MURAL AZIME · Puxando fotos do SharePoint (ao vivo, com login)
+╚════════════════════════════════════════════════════════════════╝
+
+Este mural lê uma PASTA do SharePoint e ATUALIZA SOZINHO quando você
+adiciona/remove fotos. Precisa de 3 coisas configuradas uma única vez.
+
+
+┌─ PARTE 1 · TIME DE TI (registro de app no Azure) ──────────────┐
+│  (feito só uma vez, ~5 min, por quem tem acesso ao Azure/Entra) │
+└────────────────────────────────────────────────────────────────┘
+1. Acesse  https://entra.microsoft.com  →  Identidade  →
+   Aplicações  →  Registos de aplicações  →  "Novo registo".
+2. Nome:  Mural Azime
+3. Tipos de conta:  "Somente contas neste diretório organizacional".
+4. URI de Redirecionamento  →  tipo:  SPA (Single-page application)
+   →  cole o endereço EXATO onde o index.html vai abrir, por exemplo:
+        http://localhost:5500/index.html        (se usar Live Server)
+        http://IP-DO-TABLET:5500/index.html      (na rede)
+   (pode adicionar mais de um depois, em "Autenticação")
+5. Clique em "Registar".
+6. Na tela do app, copie:
+        • ID do aplicativo (cliente)  =  clientId
+        • ID do diretório (locatário) =  tenantId
+7. Menu "Permissões de API"  →  Adicionar permissão  →  Microsoft Graph
+   →  Permissões delegadas  →  marque:  Sites.Read.All
+   →  (opcional) clique "Conceder consentimento de administrador".
+
+>> Entregue ao responsável do mural:  clientId  e  tenantId.
+
+
+┌─ PARTE 2 · CONFIGURAR O ARQUIVO (você) ────────────────────────┐
+Abra  index.html  no VS Code e preencha a seção "CONFIGURAÇÕES":
+
+  clientId:   "cole aqui"          (da Parte 1)
+  tenantId:   "cole aqui"          (da Parte 1)
+  siteHost:   "azimemoda.sharepoint.com"     (o domínio do seu site)
+  sitePath:   "/sites/portalazime"           (o caminho do site)
+  biblioteca: "Documentos"                   (nome da biblioteca)
+  pasta:      "Mural"                         ("" = raiz da biblioteca)
+
+Como achar siteHost / sitePath:
+  No endereço do site, ex.:
+  https://azimemoda.sharepoint.com/sites/portalazime/...
+           └── siteHost ──┘        └ sitePath ┘
+
+
+┌─ PARTE 3 · ABRIR NO TABLET ────────────────────────────────────┐
+1. No VS Code, instale a extensão "Live Server".
+2. Botão direito em index.html → "Open with Live Server".
+   (o endereço que abrir DEVE ser o mesmo cadastrado como Redirect URI)
+3. No tablet, abra esse endereço, toque em "Entrar e iniciar",
+   faça login uma vez com a conta Microsoft. Pronto: passa sozinho,
+   em loop, e atualiza a cada X minutos.
+
+Para rodar 24h sem apagar a tela:
+  • Android: app "Fully Kiosk Browser" (tela cheia + manter tela ligada).
+  • iPad: Safari + Acesso Guiado + Bloqueio automático = Nunca.
+  • Tablet na tomada.
+
+
+┌─ PROBLEMAS COMUNS ─────────────────────────────────────────────┐
+• "Falta configurar" → preencha clientId/tenantId no index.html.
+• Erro de login/redirect → o endereço aberto tem que ser IGUAL ao
+  Redirect URI cadastrado no Azure (Parte 1, passo 4).
+• "Nenhuma foto na pasta" → confira biblioteca/pasta e se há imagens.
+• Precisa de internet no tablet (o SharePoint é online).
+
+Obs.: existe também a versão OFFLINE (index-offline.html), que usa
+fotos de uma pasta local, sem login — caso queira um plano B.

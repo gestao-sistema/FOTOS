@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mural Azime · Slideshow</title>
+<style>
+  :root{ --ink:#0d1730; --gold:#c9a24a; --goldl:#e6cf96; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:#0a1224;overflow:hidden;font-family:-apple-system,"Segoe UI",Roboto,system-ui,sans-serif;cursor:none}
+  #stage{position:fixed;inset:0;background:#0a1224}
+  .layer{position:absolute;inset:0;opacity:0;transition:opacity 1.2s ease}
+  .layer.on{opacity:1}
+  .bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(38px) brightness(.45);transform:scale(1.15)}
+  .pic{position:absolute;inset:0;background-size:contain;background-position:center;background-repeat:no-repeat}
+  .layer.on .pic.zoom{animation:kb var(--dur,8s) ease-out forwards}
+  @keyframes kb{from{transform:scale(1.02)}to{transform:scale(1.10)}}
+  /* vinheta */
+  #vin{position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 240px rgba(0,0,0,.55)}
+  /* relógio / data */
+  #clock{position:fixed;left:44px;bottom:36px;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.7);z-index:5}
+  #hora{font-size:58px;font-weight:300;letter-spacing:1px;font-variant-numeric:tabular-nums}
+  #data{font-size:20px;color:#e7ecf5;text-transform:capitalize;margin-top:-4px}
+  /* logo */
+  #logo{position:fixed;right:44px;bottom:40px;color:#fff;text-align:right;z-index:5;text-shadow:0 2px 14px rgba(0,0,0,.7)}
+  #logo .mark{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:9px;background:rgba(0,0,0,.35);border:1px solid rgba(201,162,74,.5);color:var(--goldl);font-size:20px;margin-bottom:6px}
+  #logo .nm{font-size:17px;font-weight:600;letter-spacing:3px;color:#fff}
+  #logo .sb{font-size:11px;color:var(--goldl);letter-spacing:2px}
+  /* barra de progresso */
+  #prog{position:fixed;left:0;top:0;height:4px;background:var(--gold);width:0;z-index:6;box-shadow:0 0 10px var(--gold)}
+  /* botão iniciar / estados */
+  #start,#msg{position:fixed;inset:0;display:grid;place-items:center;z-index:20;background:linear-gradient(135deg,#12203f,#0a1224);color:#fff;cursor:pointer}
+  #msg{display:none;cursor:auto}
+  .card{max-width:640px;text-align:center;padding:40px}
+  .card .ic{font-size:52px;color:var(--goldl)}
+  .card h1{font-family:Georgia,"Times New Roman",serif;font-size:34px;margin:14px 0 8px}
+  .card p{color:#c9d2e2;font-size:16px;line-height:1.5}
+  .card .btn{display:inline-block;margin-top:22px;padding:14px 30px;border-radius:10px;background:linear-gradient(180deg,var(--goldl),var(--gold));color:#12203f;font-weight:700;font-size:16px}
+  .card code{background:rgba(255,255,255,.08);padding:2px 7px;border-radius:5px;color:var(--goldl);font-size:14px}
+  @media (prefers-reduced-motion:reduce){.layer{transition:none}.layer.on .pic.zoom{animation:none}}
+</style>
+</head>
+<body>
+
+<!-- ====== CONFIGURAÇÕES (edite aqui) ====== -->
+<script>
+  const CONFIG = {
+    segundos: 8,            // tempo de cada foto (em segundos)
+    ordemAleatoria: false,  // true = embaralha as fotos
+    efeitoZoom: true,       // zoom suave (Ken Burns) em cada foto
+    mostrarRelogio: false,  // relógio + data no canto
+    mostrarLogo: true,      // logo no canto
+    logoNome: "GRUPO AZIME",
+    logoSub: "JOIAS QUE FICAM",
+    // Deixe [] para DETECTAR SOZINHO fotos nomeadas 1, 2, 3... na pasta "fotos".
+    // Ou liste os nomes manualmente, ex.: ["fotos/festa.jpg","fotos/equipe.png"]
+    fotos: []
+  };
+</script>
+
+<div id="stage">
+  <div class="layer" id="L0"><div class="bg"></div><div class="pic"></div></div>
+  <div class="layer" id="L1"><div class="bg"></div><div class="pic"></div></div>
+</div>
+<div id="vin"></div>
+<div id="prog"></div>
+
+<div id="clock" style="display:none"><div id="hora">--:--</div><div id="data">—</div></div>
+<div id="logo" style="display:none"><div class="mark">◆</div><div class="nm"></div><div class="sb"></div></div>
+
+<div id="start">
+  <div class="card">
+    <div class="ic">🖼️</div>
+    <h1>Mural Azime</h1>
+    <p>Toque para iniciar o slideshow em tela cheia.<br>As fotos passam sozinhas, em loop infinito.</p>
+    <div class="btn">▶ Iniciar em tela cheia</div>
+  </div>
+</div>
+
+<div id="msg">
+  <div class="card">
+    <div class="ic">📂</div>
+    <h1>Nenhuma foto encontrada</h1>
+    <p>Coloque suas imagens dentro da pasta <code>fotos</code> (ao lado deste arquivo) nomeadas como <code>1.jpg</code>, <code>2.jpg</code>, <code>3.png</code>…<br><br>Ou liste os nomes na seção <b>CONFIG.fotos</b> deste arquivo. Depois, recarregue a página.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  const layers=[document.getElementById('L0'),document.getElementById('L1')];
+  const prog=document.getElementById('prog');
+  const dur=(CONFIG.segundos||8);
+  let fotos=[], idx=0, cur=0, timer=null;
+
+  // relógio
+  if(CONFIG.mostrarRelogio){
+    const c=document.getElementById('clock'); c.style.display='block';
+    const h=document.getElementById('hora'), dt=document.getElementById('data');
+    const fmt=new Intl.DateTimeFormat('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+    function tick(){const d=new Date();h.textContent=d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});dt.textContent=fmt.format(d);}
+    tick(); setInterval(tick,1000);
+  }
+  if(CONFIG.mostrarLogo){
+    const l=document.getElementById('logo'); l.style.display='block';
+    l.querySelector('.nm').textContent=CONFIG.logoNome||''; l.querySelector('.sb').textContent=CONFIG.logoSub||'';
+  }
+
+  function exists(url){return new Promise(r=>{const im=new Image();im.onload=()=>r(true);im.onerror=()=>r(false);im.src=url;});}
+  async function descobrir(){
+    const exts=['jpg','jpeg','png','webp','JPG','JPEG','PNG'];
+    const out=[]; let miss=0;
+    for(let i=1;i<=400 && miss<10;i++){
+      let ok=null;
+      for(const e of exts){ const u='fotos/'+i+'.'+e; if(await exists(u)){ok=u;break;} }
+      if(ok){out.push(ok);miss=0;} else miss++;
+    }
+    return out;
+  }
+  function embaralha(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+  function mostrar(url){
+    const next=1-cur; const L=layers[next];
+    L.querySelector('.bg').style.backgroundImage="url('"+url+"')";
+    const pic=L.querySelector('.pic'); pic.style.backgroundImage="url('"+url+"')";
+    pic.classList.toggle('zoom',!!CONFIG.efeitoZoom); pic.style.setProperty('--dur',dur+'s');
+    // reinicia animação
+    pic.style.animation='none'; void pic.offsetWidth; pic.style.animation='';
+    layers[cur].classList.remove('on'); L.classList.add('on'); cur=next;
+    // barra de progresso
+    prog.style.transition='none'; prog.style.width='0';
+    requestAnimationFrame(()=>{prog.style.transition='width '+dur+'s linear'; prog.style.width='100%';});
+    // pré-carrega próxima
+    const nx=fotos[(idx+1)%fotos.length]; const pi=new Image(); pi.src=nx;
+  }
+  function proxima(){ mostrar(fotos[idx]); idx=(idx+1)%fotos.length; }
+  function loop(){ proxima(); timer=setInterval(proxima, dur*1000); }
+
+  async function iniciar(){
+    document.getElementById('start').style.display='none';
+    // tela cheia
+    try{ const el=document.documentElement; (el.requestFullscreen||el.webkitRequestFullscreen||function(){}).call(el); }catch(e){}
+    fotos = (CONFIG.fotos && CONFIG.fotos.length) ? CONFIG.fotos.slice() : await descobrir();
+    if(!fotos.length){ document.getElementById('msg').style.display='grid'; return; }
+    if(CONFIG.ordemAleatoria) embaralha(fotos);
+    loop();
+  }
+  document.getElementById('start').addEventListener('click',iniciar);
+  // atalhos: F = tela cheia, setas navegam
+  document.addEventListener('keydown',e=>{
+    if(e.key==='f'||e.key==='F'){const el=document.documentElement;(document.fullscreenElement?document.exitFullscreen():el.requestFullscreen()).catch&&0;}
+    if(!fotos.length)return;
+    if(e.key==='ArrowRight'){clearInterval(timer);proxima();timer=setInterval(proxima,dur*1000);}
+    if(e.key==='ArrowLeft'){clearInterval(timer);idx=(idx-2+fotos.length)%fotos.length;proxima();timer=setInterval(proxima,dur*1000);}
+  });
+})();
+</script>
+</body>
+</html>

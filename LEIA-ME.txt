@@ -1,0 +1,46 @@
+╔══════════════════════════════════════════════════════════╗
+   MURAL AZIME · Slideshow para tablets (loop infinito)
+╚══════════════════════════════════════════════════════════╝
+
+COMO USAR (3 passos)
+────────────────────
+1) Coloque suas fotos na pasta  "fotos"  (ao lado deste arquivo),
+   nomeadas em sequência:  1.jpg , 2.jpg , 3.png , 4.jpg ...
+   (aceita .jpg .jpeg .png .webp)
+
+2) Abra o arquivo  index.html  (duplo-clique) OU, no VS Code,
+   clique com o botão direito em index.html > "Open with Live Server".
+
+3) Toque em "▶ Iniciar em tela cheia". Pronto — passa sozinho, para sempre.
+
+
+AJUSTES (abra o index.html no VS Code, seção "CONFIGURAÇÕES" no topo)
+────────────────────────────────────────────────────────────────────
+  segundos:        tempo de cada foto (padrão 8)
+  ordemAleatoria:  true = embaralha
+  efeitoZoom:      true = zoom suave em cada foto
+  mostrarRelogio:  relógio + data no canto
+  mostrarLogo:     logo no canto (GRUPO AZIME)
+  fotos: []        deixe [] para detectar sozinho (1,2,3...),
+                   ou liste os nomes manualmente.
+
+
+NO TABLET (para rodar 24h sem apagar a tela)
+────────────────────────────────────────────
+  • Android: instale o app "Fully Kiosk Browser", aponte para o
+    endereço do index.html (ou o link do Live Server), ative
+    tela cheia + "manter tela ligada". Ele reinicia sozinho ao ligar.
+  • iPad: abra no Safari em tela cheia, use "Acesso Guiado" e
+    Ajustes > Tela e Brilho > Bloqueio automático = Nunca.
+  • Deixe o tablet na tomada.
+
+
+ATALHOS (com teclado)
+─────────────────────
+  F = tela cheia   |   → próxima foto   |   ← foto anterior
+
+
+DICA
+────
+  As 2 fotos de exemplo (1.png e 2.png) já estão na pasta "fotos".
+  Apague-as e coloque as suas.
