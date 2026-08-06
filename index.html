@@ -178,9 +178,13 @@
 
   /* ---------------- utilidades ---------------- */
 
-  // encoda cada pedaco do caminho: resolve espaco, acento, # e & nos nomes das pastas
+  // encoda cada pedaco do caminho: resolve espaco, acento, # e & nos nomes das
+  // pastas. O ?v=... do fim fica de fora do encode, senao o "?" viraria %3F
   function urlDe(rel){
-    return rel.split('/').map(encodeURIComponent).join('/');
+    const i = rel.indexOf('?');
+    const caminho = i < 0 ? rel : rel.slice(0, i);
+    const versao  = i < 0 ? ''  : rel.slice(i);
+    return caminho.split('/').map(encodeURIComponent).join('/') + versao;
   }
   function embaralha(a){
     for (let i = a.length - 1; i > 0; i--){

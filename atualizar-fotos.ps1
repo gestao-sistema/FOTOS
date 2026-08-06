@@ -267,8 +267,22 @@ if (-not $SemOtimizar -and (Test-Path -LiteralPath $cacheDir)) {
 $porMarca = @{}
 foreach ($it in ($selecionadas | Sort-Object chave)) {
   if (-not $porMarca.ContainsKey($it.marca)) { $porMarca[$it.marca] = New-Object Collections.ArrayList }
-  $web = if ($mapaLeve.ContainsKey($it.rel)) { $mapaLeve[$it.rel] } else { $nomeRaiz + '/' + $it.rel }
-  [void]$porMarca[$it.marca].Add($web)
+
+  $usaLeve = $mapaLeve.ContainsKey($it.rel)
+  $web     = if ($usaLeve) { $mapaLeve[$it.rel] } else { $nomeRaiz + '/' + $it.rel }
+  $noDisco = if ($usaLeve) { Join-Path $Saida ($mapaLeve[$it.rel] -replace '/', '\') } else { $it.arquivo.FullName }
+
+  # ?v=<marca de tempo do arquivo>: se voce TROCAR uma foto mantendo o mesmo
+  # nome, o endereco muda junto e o tablet baixa a nova. Sem isso o navegador
+  # continuaria mostrando a antiga, do cache dele, por dias.
+  $selo = '0'
+  try {
+    $ticks = (Get-Item -LiteralPath $noDisco).LastWriteTimeUtc.Ticks
+    $hex   = ([Convert]::ToString([int64]$ticks, 16)).ToLowerInvariant()
+    $selo  = $hex.Substring([Math]::Max(0, $hex.Length - 8))
+  } catch { }
+
+  [void]$porMarca[$it.marca].Add($web + '?v=' + $selo)
 }
 
 # toda subpasta de FOTOS conta como marca, mesmo que ainda nao tenha nenhuma
