@@ -303,8 +303,14 @@
       return;
     }
 
-    // botao TODAS + um por marca
-    const itens = [{chave:'*', rotulo:'TODAS', qt: comFoto.reduce(function(s,m){ return s + qtDe(m); }, 0)}];
+    // link de uma marca so (grace.html, novitah.html): nao faz sentido "TODAS"
+    // nem deixar desmarcar a unica marca que existe
+    const umaSo = comFoto.length === 1;
+
+    const itens = [];
+    if (!umaSo){
+      itens.push({chave:'*', rotulo:'TODAS', qt: comFoto.reduce(function(s,m){ return s + qtDe(m); }, 0)});
+    }
     nomes.forEach(function(m){ itens.push({chave:m, rotulo:m, qt:qtDe(m)}); });
 
     itens.forEach(function(it){
@@ -316,11 +322,17 @@
       if (it.qt === 0){
         b.disabled = true;
         b.title = 'Sem foto tratada em FOTOS\\' + it.rotulo + ' ainda';
-      } else {
+      } else if (!umaSo){
         b.addEventListener('click', function(){ alternar(it.chave); });
       }
       box.appendChild(b);
     });
+
+    if (umaSo){
+      $('pergunta').textContent = 'Pronto para começar';
+      $('dica').innerHTML = 'Toque em <b>Iniciar</b>. As fotos passam sozinhas, em loop.<br>' +
+                            'Na tela, as setas passam as fotos e <b>◀ Início</b> volta para cá.';
+    }
 
     pintar();
   }
