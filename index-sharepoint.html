@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mural Azime · SharePoint (ao vivo)</title>
+<style>
+  :root{ --ink:#0d1730; --gold:#c9a24a; --goldl:#e6cf96; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:#0a1224;overflow:hidden;font-family:-apple-system,"Segoe UI",Roboto,system-ui,sans-serif;cursor:none}
+  #stage{position:fixed;inset:0;background:#0a1224}
+  .layer{position:absolute;inset:0;opacity:0;transition:opacity 1.2s ease}
+  .layer.on{opacity:1}
+  .bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(38px) brightness(.45);transform:scale(1.15)}
+  .pic{position:absolute;inset:0;background-size:contain;background-position:center;background-repeat:no-repeat}
+  .layer.on .pic.zoom{animation:kb var(--dur,8s) ease-out forwards}
+  @keyframes kb{from{transform:scale(1.02)}to{transform:scale(1.10)}}
+  #vin{position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 240px rgba(0,0,0,.55)}
+  #clock{position:fixed;left:44px;bottom:36px;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.7);z-index:5}
+  #hora{font-size:58px;font-weight:300;letter-spacing:1px;font-variant-numeric:tabular-nums}
+  #data{font-size:20px;color:#e7ecf5;text-transform:capitalize;margin-top:-4px}
+  #logo{position:fixed;right:44px;bottom:40px;color:#fff;text-align:right;z-index:5;text-shadow:0 2px 14px rgba(0,0,0,.7)}
+  #logo .mark{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:9px;background:rgba(0,0,0,.35);border:1px solid rgba(201,162,74,.5);color:var(--goldl);font-size:20px;margin-bottom:6px}
+  #logo .nm{font-size:17px;font-weight:600;letter-spacing:3px;color:#fff}
+  #logo .sb{font-size:11px;color:var(--goldl);letter-spacing:2px}
+  #prog{position:fixed;left:0;top:0;height:4px;background:var(--gold);width:0;z-index:6;box-shadow:0 0 10px var(--gold)}
+  #start,#msg{position:fixed;inset:0;display:grid;place-items:center;z-index:20;background:linear-gradient(135deg,#12203f,#0a1224);color:#fff;cursor:pointer}
+  #msg{display:none;cursor:auto}
+  .card{max-width:680px;text-align:center;padding:40px}
+  .card .ic{font-size:52px;color:var(--goldl)}
+  .card h1{font-family:Georgia,"Times New Roman",serif;font-size:34px;margin:14px 0 8px}
+  .card p{color:#c9d2e2;font-size:16px;line-height:1.5}
+  .card .btn{display:inline-block;margin-top:22px;padding:14px 30px;border-radius:10px;background:linear-gradient(180deg,var(--goldl),var(--gold));color:#12203f;font-weight:700;font-size:16px}
+  .card code{background:rgba(255,255,255,.08);padding:2px 7px;border-radius:5px;color:var(--goldl);font-size:13px}
+  #status{position:fixed;left:0;right:0;bottom:14px;text-align:center;color:#8fa0bd;font-size:12px;z-index:30}
+  @media (prefers-reduced-motion:reduce){.layer{transition:none}.layer.on .pic.zoom{animation:none}}
+</style>
+</head>
+<body>
+
+<!-- ================== CONFIGURAÇÕES ================== -->
+<script>
+  const CONFIG = {
+    // ---- Microsoft 365 (peça ao time de TI) ----
+    clientId: "COLE_AQUI_O_CLIENT_ID",       // do registro de app no Azure (Application/Client ID)
+    tenantId: "COLE_AQUI_O_TENANT_ID",       // Directory/Tenant ID  (ou "organizations")
+
+    // ---- Onde estão as fotos no SharePoint ----
+    siteHost: "azimemoda.sharepoint.com",    // domínio do seu SharePoint (do endereço do site)
+    sitePath: "/sites/portalazime",          // caminho do site (depois do domínio)
+    biblioteca: "Documentos",                // nome da biblioteca (Document Library). Padrão = "Documentos"
+    pasta: "Mural",                          // pasta dentro da biblioteca ("" = raiz da biblioteca)
+
+    // ---- Visual ----
+    segundos: 8,
+    ordemAleatoria: false,
+    efeitoZoom: true,
+    mostrarRelogio: false,
+    mostrarLogo: true,
+    logoNome: "GRUPO AZIME",
+    logoSub: "JOIAS QUE FICAM",
+    atualizarMin: 10                          // re-checa novas fotos a cada X minutos
+  };
+</script>
+<script src="https://alcdn.msauth.net/browser/3.10.0/js/msal-browser.min.js"></script>
+
+<div id="stage">
+  <div class="layer" id="L0"><div class="bg"></div><div class="pic"></div></div>
+  <div class="layer" id="L1"><div class="bg"></div><div class="pic"></div></div>
+</div>
+<div id="vin"></div>
+<div id="prog"></div>
+<div id="clock" style="display:none"><div id="hora">--:--</div><div id="data">—</div></div>
+<div id="logo" style="display:none"><div class="mark">◆</div><div class="nm"></div><div class="sb"></div></div>
+<div id="status"></div>
+
+<div id="start">
+  <div class="card">
+    <div class="ic">🖼️</div>
+    <h1>Mural Azime</h1>
+    <p>Toque para entrar com sua conta Microsoft e iniciar o mural em tela cheia.<br>As fotos vêm do SharePoint e passam sozinhas, em loop.</p>
+    <div class="btn">▶ Entrar e iniciar</div>
+  </div>
+</div>
+
+<div id="msg"><div class="card"><div class="ic">⚠️</div><h1 id="msgt">—</h1><p id="msgp"></p></div></div>
+
+<script>
+(function(){
+  const layers=[document.getElementById('L0'),document.getElementById('L1')];
+  const prog=document.getElementById('prog');
+  const statusEl=document.getElementById('status');
+  const dur=(CONFIG.segundos||8);
+  let fotos=[], idx=0, cur=0, timer=null, refreshTimer=null, msal=null, account=null;
+
+  function stat(t){statusEl.textContent=t||'';}
+  function erro(titulo,texto){document.getElementById('start').style.display='none';document.getElementById('msgt').textContent=titulo;document.getElementById('msgp').innerHTML=texto;document.getElementById('msg').style.display='grid';}
+
+  // relógio / logo
+  if(CONFIG.mostrarRelogio){
+    const c=document.getElementById('clock');c.style.display='block';
+    const h=document.getElementById('hora'),dt=document.getElementById('data');
+    const fmt=new Intl.DateTimeFormat('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+    (function tick(){const d=new Date();h.textContent=d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});dt.textContent=fmt.format(d);setTimeout(tick,1000);})();
+  }
+  if(CONFIG.mostrarLogo){const l=document.getElementById('logo');l.style.display='block';l.querySelector('.nm').textContent=CONFIG.logoNome||'';l.querySelector('.sb').textContent=CONFIG.logoSub||'';}
+
+  // ---- slideshow ----
+  function embaralha(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+  function mostrar(url){
+    const next=1-cur,L=layers[next];
+    L.querySelector('.bg').style.backgroundImage="url('"+url+"')";
+    const pic=L.querySelector('.pic');pic.style.backgroundImage="url('"+url+"')";
+    pic.classList.toggle('zoom',!!CONFIG.efeitoZoom);pic.style.setProperty('--dur',dur+'s');
+    pic.style.animation='none';void pic.offsetWidth;pic.style.animation='';
+    layers[cur].classList.remove('on');L.classList.add('on');cur=next;
+    prog.style.transition='none';prog.style.width='0';
+    requestAnimationFrame(()=>{prog.style.transition='width '+dur+'s linear';prog.style.width='100%';});
+    const nx=fotos[(idx+1)%fotos.length];if(nx){const pi=new Image();pi.src=nx;}
+  }
+  function proxima(){if(!fotos.length)return;mostrar(fotos[idx]);idx=(idx+1)%fotos.length;}
+  function comecarLoop(){clearInterval(timer);idx=0;proxima();timer=setInterval(proxima,dur*1000);}
+
+  // ---- Microsoft Graph ----
+  const GRAPH="https://graph.microsoft.com/v1.0";
+  async function gget(url,token){
+    const r=await fetch(url.startsWith('http')?url:GRAPH+url,{headers:{Authorization:"Bearer "+token}});
+    if(!r.ok){throw new Error("Graph "+r.status+" em "+url);}
+    return r.json();
+  }
+  async function carregarFotos(token){
+    stat("Buscando fotos no SharePoint…");
+    // 1) site
+    const site=await gget("/sites/"+CONFIG.siteHost+":"+CONFIG.sitePath,token);
+    // 2) biblioteca (drive)
+    const drives=await gget("/sites/"+site.id+"/drives",token);
+    let drive=drives.value.find(d=>(d.name||"").toLowerCase()===(CONFIG.biblioteca||"").toLowerCase());
+    if(!drive) drive=drives.value.find(d=>d.name==="Documents"||d.name==="Documentos")||drives.value[0];
+    if(!drive) throw new Error("Biblioteca não encontrada");
+    // 3) itens da pasta (com paginação)
+    const base=CONFIG.pasta ? "/drives/"+drive.id+"/root:/"+encodeURI(CONFIG.pasta)+":/children" : "/drives/"+drive.id+"/root/children";
+    let url=base+"?$top=200&$select=name,file,@microsoft.graph.downloadUrl";
+    const urls=[];
+    while(url){
+      const page=await gget(url,token);
+      (page.value||[]).forEach(it=>{
+        if(it.file && /^image\//.test(it.file.mimeType||"")){
+          const d=it["@microsoft.graph.downloadUrl"]; if(d) urls.push({name:it.name,url:d});
+        }
+      });
+      url=page["@odata.nextLink"]||null;
+    }
+    urls.sort((a,b)=>a.name.localeCompare(b.name,'pt',{numeric:true}));
+    return urls.map(u=>u.url);
+  }
+  async function token(){
+    try{const r=await msal.acquireTokenSilent({scopes:["Sites.Read.All"],account});return r.accessToken;}
+    catch(e){ msal.acquireTokenRedirect({scopes:["Sites.Read.All"],account}); throw e; }
+  }
+  async function atualizar(){
+    try{
+      const t=await token();
+      const novas=await carregarFotos(t);
+      if(!novas.length){erro("Nenhuma foto na pasta","Coloque imagens em <code>"+(CONFIG.pasta||'raiz')+"</code> da biblioteca <code>"+CONFIG.biblioteca+"</code> no site <code>"+CONFIG.sitePath+"</code>.");return;}
+      fotos=CONFIG.ordemAleatoria?embaralha(novas):novas;
+      stat("");
+      if(!timer) comecarLoop();
+    }catch(e){ stat("Falha ao atualizar: "+e.message); }
+  }
+
+  async function iniciar(){
+    if(CONFIG.clientId.indexOf("COLE_AQUI")===0){erro("Falta configurar","Abra o <code>index.html</code> no VS Code e preencha <b>clientId</b> e <b>tenantId</b> na seção CONFIGURAÇÕES (peça ao time de TI). Veja o arquivo <code>LEIA-ME-SHAREPOINT.txt</code>.");return;}
+    if(typeof msalBrowser==='undefined' && typeof msal==='undefined'){erro("Sem internet?","Não foi possível carregar o login da Microsoft (MSAL). Verifique a conexão do tablet.");return;}
+    const M=window.msal;
+    msal=new M.PublicClientApplication({
+      auth:{clientId:CONFIG.clientId,authority:"https://login.microsoftonline.com/"+CONFIG.tenantId,redirectUri:location.href.split('#')[0].split('?')[0]},
+      cache:{cacheLocation:"localStorage"}
+    });
+    await msal.initialize();
+    const resp=await msal.handleRedirectPromise();
+    if(resp&&resp.account) msal.setActiveAccount(resp.account);
+    account=msal.getActiveAccount()||msal.getAllAccounts()[0];
+    if(!account){ stat("Redirecionando para o login…"); msal.loginRedirect({scopes:["Sites.Read.All"]}); return; }
+    msal.setActiveAccount(account);
+    document.getElementById('start').style.display='none';
+    try{const el=document.documentElement;(el.requestFullscreen||function(){}).call(el);}catch(e){}
+    await atualizar();
+    clearInterval(refreshTimer);
+    refreshTimer=setInterval(atualizar,(CONFIG.atualizarMin||10)*60000);
+  }
+
+  // se já voltou de um login (redirect), inicia sozinho; senão espera o toque
+  window.addEventListener('load',async ()=>{
+    try{
+      const M=window.msal;
+      if(M && CONFIG.clientId.indexOf("COLE_AQUI")!==0){
+        const inst=new M.PublicClientApplication({auth:{clientId:CONFIG.clientId,authority:"https://login.microsoftonline.com/"+CONFIG.tenantId,redirectUri:location.href.split('#')[0].split('?')[0]},cache:{cacheLocation:"localStorage"}});
+        await inst.initialize();
+        const r=await inst.handleRedirectPromise();
+        if((r&&r.account)||inst.getAllAccounts().length){ iniciar(); return; }
+      }
+    }catch(e){}
+  });
+  document.getElementById('start').addEventListener('click',iniciar);
+  document.addEventListener('keydown',e=>{
+    if(e.key==='f'||e.key==='F'){const el=document.documentElement;(document.fullscreenElement?document.exitFullscreen():el.requestFullscreen()).catch&&0;}
+    if(!fotos.length)return;
+    if(e.key==='ArrowRight'){clearInterval(timer);proxima();timer=setInterval(proxima,dur*1000);}
+    if(e.key==='ArrowLeft'){clearInterval(timer);idx=(idx-2+fotos.length)%fotos.length;proxima();timer=setInterval(proxima,dur*1000);}
+  });
+})();
+</script>
+</body>
+</html>

@@ -27,7 +27,7 @@ if (-not $python) { $python = Get-Command py -ErrorAction SilentlyContinue }
 if (-not $python) {
   Titulo 'Python nao encontrado'
   Write-Host '  Sem Python o tablet nao pode abrir pela rede.'
-  Write-Host '  Mas o mural funciona neste PC: abra o arquivo mural.html com duplo-clique.' -ForegroundColor Yellow
+  Write-Host '  Mas o mural funciona neste PC: abra o arquivo index.html com duplo-clique.' -ForegroundColor Yellow
   Write-Host ''
   return
 }
@@ -49,7 +49,7 @@ $srv = Start-Process -FilePath $python.Source `
 Start-Sleep -Milliseconds 900
 if ($srv.HasExited) {
   Titulo 'O servidor nao subiu'
-  Write-Host '  Abra o mural.html com duplo-clique (funciona neste PC, sem o tablet).' -ForegroundColor Yellow
+  Write-Host '  Abra o index.html com duplo-clique (funciona neste PC, sem o tablet).' -ForegroundColor Yellow
   return
 }
 
@@ -57,8 +57,8 @@ $ip = (Get-NetIPAddress -AddressFamily IPv4 |
        Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254.*' -and $_.InterfaceAlias -notlike '*VPN*' } |
        Select-Object -First 1).IPAddress
 
-$urlPC     = "http://localhost:$Porta/mural.html"
-$urlTablet = if ($ip) { "http://${ip}:$Porta/mural.html" } else { $null }
+$urlPC     = "http://localhost:$Porta/"
+$urlTablet = if ($ip) { "http://${ip}:$Porta/" } else { $null }
 
 Titulo 'MURAL NO AR'
 Write-Host '  ------------------------------------------------'

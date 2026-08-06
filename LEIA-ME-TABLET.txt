@@ -2,9 +2,14 @@
    MURAL AZIME · versão com escolha de marca (ALINARE/GRACE/NOVITAH)
 ╚══════════════════════════════════════════════════════════════════╝
 
-Arquivo do mural:  mural.html
-(os antigos index.html e index-offline.html continuam aí, mas pode
- esquecê-los — este novo substitui os dois)
+Arquivo do mural:  index.html  (é o endereço principal do site)
+
+NO AR EM:  https://fotos-production-d497.up.railway.app
+           Esse endereço funciona de qualquer lugar, em qualquer tablet,
+           SEM precisar do PC ligado. É a forma recomendada de usar.
+
+(os antigos index-sharepoint.html e index-offline.html continuam na
+ pasta, mas pode esquecê-los — este novo substitui os dois)
 
 
 ┌─ COMO USAR NO DIA A DIA ────────────────────────────────────────┐
@@ -15,10 +20,16 @@ Arquivo do mural:  mural.html
    Pode ter quantas subpastas quiser, com qualquer nome de arquivo
    (não precisa mais numerar 1.jpg, 2.jpg).
 
-2) Duplo-clique em:   Iniciar mural.cmd
+2) Duplo-clique em:   Publicar no site.cmd
+   Ele prepara as fotos e manda pro site. Em ~1 minuto o endereço
+   https://fotos-production-d497.up.railway.app já mostra as novas.
 
-3) Escolha as marcas na tela (ALINARE, GRACE, NOVITAH ou TODAS) e
-   toque em "▶ Iniciar". Pronto — passa sozinho, em loop, pra sempre.
+3) No tablet, abra esse endereço, escolha as marcas (ALINARE, GRACE,
+   NOVITAH ou TODAS) e toque em "▶ Iniciar". Pronto — passa sozinho,
+   em loop, pra sempre.
+
+   (Se preferir rodar sem internet, pela Wi-Fi local, use o
+    "Iniciar mural.cmd" — veja a seção NO TABLET mais abaixo.)
 
 Já rodando:
    • toque 3 vezes na tela  → volta pra escolha de marcas
@@ -58,32 +69,48 @@ Por isso o script gera cópias leves na pasta "_otimizadas"
 (1920 px, ~400 KB cada). O mural usa essas cópias.
 Os ORIGINAIS em FOTOS não são tocados.
 
-   • Adicionou fotos novas? Rode "Atualizar fotos.cmd" — ele só
-     processa as novas, as antigas já ficam prontas.
+   • Adicionou fotos novas? Rode "Publicar no site.cmd" (ou o
+     "Atualizar fotos.cmd", se for só uso local) — ele só processa as
+     novas, as antigas já ficam prontas.
    • Quer mais nitidez (TV 4K)?  no Atualizar fotos.cmd troque para
      -MaxPx 2560
    • A pasta _otimizadas pode ser apagada a qualquer momento; ela se
      refaz na próxima execução.
 
 
-┌─ NO TABLET (pela Wi-Fi) ────────────────────────────────────────┐
+┌─ NO TABLET · JEITO 1: pelo site (RECOMENDADO) ──────────────────┐
+
+No tablet, abra:
+        https://fotos-production-d497.up.railway.app
+
+É só isso. Não precisa de PC ligado, não precisa estar na mesma
+Wi-Fi, funciona de qualquer lugar. Para trocar as fotos do site,
+duplo-clique no "Publicar no site.cmd" aqui no PC.
+
+
+┌─ NO TABLET · JEITO 2: pela Wi-Fi local (plano B) ───────────────┐
+
+Serve se a internet cair ou se você não quiser as fotos na web.
 
 1) No PC, duplo-clique em "Iniciar mural.cmd".
    Ele mostra dois endereços — anote o "No TABLET", algo como:
-        http://192.168.21.160:5500/mural.html
+        http://192.168.21.160:5500/
 
 2) No tablet (mesma Wi-Fi do PC), abra esse endereço no Chrome.
 
 3) Na primeira vez o Windows pergunta sobre o Firewall:
    marque "Redes privadas" e permita.
 
-ATENÇÃO: essa janela preta do "Iniciar mural.cmd" precisa ficar
-ABERTA no PC — é ela que serve as fotos pro tablet. Se fechar, o
-tablet para. (No PC mesmo, o mural funciona sem ela: duplo-clique
-direto no mural.html.)
+ATENÇÃO: nesse jeito, a janela preta do "Iniciar mural.cmd" precisa
+ficar ABERTA no PC — é ela que serve as fotos pro tablet. Se fechar,
+o tablet para. (No PC mesmo, o mural funciona sem ela: duplo-clique
+direto no index.html.)
 
 Enquanto está aberta, ela revê a pasta FOTOS a cada minuto: foto
 que você adicionar aparece no mural sozinha, sem mexer no tablet.
+
+Obs.: nesse jeito o endereço é http (não https), e por isso o
+Android não deixa o mural travar a tela ligada — use o Fully Kiosk.
 
 
 ┌─ PRA RODAR 24H SEM APAGAR A TELA ───────────────────────────────┐
@@ -98,7 +125,8 @@ que você adicionar aparece no mural sozinha, sem mexer no tablet.
 
 ┌─ AJUSTES DO VISUAL ─────────────────────────────────────────────┐
 
-Abra mural.html no VS Code, seção "CONFIGURAÇÕES" no topo:
+Abra index.html no VS Code, seção "CONFIGURAÇÕES" no topo
+(depois de mexer, rode o "Publicar no site.cmd" pra valer no tablet):
 
   marcas: ["ALINARE","GRACE","NOVITAH"]
         os botões que aparecem SEMPRE, nessa ordem. Marca sem foto na

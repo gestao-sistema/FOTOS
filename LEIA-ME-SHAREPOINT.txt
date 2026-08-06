@@ -2,6 +2,12 @@
    MURAL AZIME · Puxando fotos do SharePoint (ao vivo, com login)
 ╚════════════════════════════════════════════════════════════════╝
 
+*** ATENÇÃO: ESTE CAMINHO FOI ABANDONADO ***
+Exige registro de app no Azure pelo time de TI, o que não vai
+acontecer. O arquivo virou "index-sharepoint.html" (onde se lê
+"index.html" abaixo, é ele). O mural em uso é o index.html —
+veja LEIA-ME-TABLET.txt.
+
 Este mural lê uma PASTA do SharePoint e ATUALIZA SOZINHO quando você
 adiciona/remove fotos. Precisa de 3 coisas configuradas uma única vez.
 

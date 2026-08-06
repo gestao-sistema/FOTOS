@@ -3,11 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Mural Azime · SharePoint (ao vivo)</title>
+<meta name="mobile-web-app-capable" content="yes">
+<title>Mural Azime</title>
 <style>
   :root{ --ink:#0d1730; --gold:#c9a24a; --goldl:#e6cf96; }
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%;background:#0a1224;overflow:hidden;font-family:-apple-system,"Segoe UI",Roboto,system-ui,sans-serif;cursor:none}
+  html,body{height:100%;background:#0a1224;overflow:hidden;-webkit-user-select:none;user-select:none;
+            font-family:-apple-system,"Segoe UI",Roboto,system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+  body.rodando{cursor:none}
+
+  /* ---------- palco ---------- */
   #stage{position:fixed;inset:0;background:#0a1224}
   .layer{position:absolute;inset:0;opacity:0;transition:opacity 1.2s ease}
   .layer.on{opacity:1}
@@ -15,54 +20,74 @@
   .pic{position:absolute;inset:0;background-size:contain;background-position:center;background-repeat:no-repeat}
   .layer.on .pic.zoom{animation:kb var(--dur,8s) ease-out forwards}
   @keyframes kb{from{transform:scale(1.02)}to{transform:scale(1.10)}}
-  #vin{position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 240px rgba(0,0,0,.55)}
-  #clock{position:fixed;left:44px;bottom:36px;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.7);z-index:5}
+  #vin{position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 240px rgba(0,0,0,.5)}
+  #prog{position:fixed;left:0;top:0;height:4px;background:var(--gold);width:0;z-index:6;box-shadow:0 0 10px var(--gold);display:none}
+
+  /* ---------- relogio / logo (desligados por padrao) ---------- */
+  #clock{position:fixed;left:44px;bottom:36px;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.7);z-index:5;display:none}
   #hora{font-size:58px;font-weight:300;letter-spacing:1px;font-variant-numeric:tabular-nums}
   #data{font-size:20px;color:#e7ecf5;text-transform:capitalize;margin-top:-4px}
-  #logo{position:fixed;right:44px;bottom:40px;color:#fff;text-align:right;z-index:5;text-shadow:0 2px 14px rgba(0,0,0,.7)}
+  #logo{position:fixed;right:44px;bottom:40px;color:#fff;text-align:right;z-index:5;display:none;text-shadow:0 2px 14px rgba(0,0,0,.7)}
   #logo .mark{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:9px;background:rgba(0,0,0,.35);border:1px solid rgba(201,162,74,.5);color:var(--goldl);font-size:20px;margin-bottom:6px}
-  #logo .nm{font-size:17px;font-weight:600;letter-spacing:3px;color:#fff}
+  #logo .nm{font-size:17px;font-weight:600;letter-spacing:3px}
   #logo .sb{font-size:11px;color:var(--goldl);letter-spacing:2px}
-  #prog{position:fixed;left:0;top:0;height:4px;background:var(--gold);width:0;z-index:6;box-shadow:0 0 10px var(--gold)}
-  #start,#msg{position:fixed;inset:0;display:grid;place-items:center;z-index:20;background:linear-gradient(135deg,#12203f,#0a1224);color:#fff;cursor:pointer}
-  #msg{display:none;cursor:auto}
-  .card{max-width:680px;text-align:center;padding:40px}
-  .card .ic{font-size:52px;color:var(--goldl)}
-  .card h1{font-family:Georgia,"Times New Roman",serif;font-size:34px;margin:14px 0 8px}
-  .card p{color:#c9d2e2;font-size:16px;line-height:1.5}
-  .card .btn{display:inline-block;margin-top:22px;padding:14px 30px;border-radius:10px;background:linear-gradient(180deg,var(--goldl),var(--gold));color:#12203f;font-weight:700;font-size:16px}
-  .card code{background:rgba(255,255,255,.08);padding:2px 7px;border-radius:5px;color:var(--goldl);font-size:13px}
-  #status{position:fixed;left:0;right:0;bottom:14px;text-align:center;color:#8fa0bd;font-size:12px;z-index:30}
+
+  /* ---------- tela de escolha ---------- */
+  #inicio{position:fixed;inset:0;z-index:20;display:grid;place-items:center;overflow:auto;
+          background:linear-gradient(135deg,#12203f,#0a1224);color:#fff}
+  .card{width:100%;max-width:760px;text-align:center;padding:36px 26px 48px}
+  .card .ic{font-size:46px;color:var(--goldl);line-height:1}
+  .card h1{font-family:Georgia,"Times New Roman",serif;font-size:32px;margin:12px 0 6px;font-weight:400}
+  .card .sub{color:#9fb0cc;font-size:14px;letter-spacing:2px;text-transform:uppercase}
+  .card .ask{color:#c9d2e2;font-size:16px;margin:30px 0 14px}
+
+  #marcas{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+  .chip{appearance:none;border:1.5px solid rgba(201,162,74,.45);background:rgba(255,255,255,.05);color:#e7ecf5;
+        padding:16px 24px;border-radius:12px;font-size:17px;font-weight:600;letter-spacing:1px;cursor:pointer;
+        transition:background .15s,border-color .15s,transform .1s;min-width:150px;text-align:center}
+  .chip:active{transform:scale(.97)}
+  .chip .qt{display:block;font-size:12px;font-weight:400;letter-spacing:0;color:#8fa0bd;margin-top:3px}
+  .chip.on{background:linear-gradient(180deg,var(--goldl),var(--gold));border-color:var(--goldl);color:#12203f}
+  .chip.on .qt{color:#3b3117}
+  .chip:disabled{opacity:.35;cursor:default;border-style:dashed}
+  .chip:disabled:active{transform:none}
+
+  .btn{appearance:none;border:0;display:inline-block;margin-top:32px;padding:17px 44px;border-radius:12px;
+       background:linear-gradient(180deg,var(--goldl),var(--gold));color:#12203f;font-weight:700;font-size:18px;cursor:pointer}
+  .btn:disabled{opacity:.35;cursor:default}
+  .btn:active:not(:disabled){transform:scale(.98)}
+  .dica{color:#8fa0bd;font-size:13px;margin-top:22px;line-height:1.6}
+  .dica code{background:rgba(255,255,255,.08);padding:2px 7px;border-radius:5px;color:var(--goldl);font-size:12px}
+  .erro{color:#ffb4a2;font-size:14px;margin-top:18px;line-height:1.6}
+
+  #toast{position:fixed;left:50%;bottom:34px;transform:translateX(-50%);z-index:30;display:none;
+         background:rgba(6,12,26,.9);border:1px solid rgba(201,162,74,.35);color:#e7ecf5;
+         padding:11px 20px;border-radius:10px;font-size:13px;text-align:center;max-width:88vw}
   @media (prefers-reduced-motion:reduce){.layer{transition:none}.layer.on .pic.zoom{animation:none}}
 </style>
 </head>
 <body>
 
-<!-- ================== CONFIGURAÇÕES ================== -->
+<!-- ================== CONFIGURACOES ================== -->
 <script>
   const CONFIG = {
-    // ---- Microsoft 365 (peça ao time de TI) ----
-    clientId: "COLE_AQUI_O_CLIENT_ID",       // do registro de app no Azure (Application/Client ID)
-    tenantId: "COLE_AQUI_O_TENANT_ID",       // Directory/Tenant ID  (ou "organizations")
+    // botoes que aparecem SEMPRE, nesta ordem (mesmo sem foto na pasta ainda).
+    // Marca nova em FOTOS\ que nao esteja aqui tambem ganha botao, no fim da fila.
+    marcas: ["ALINARE", "GRACE", "NOVITAH"],
 
-    // ---- Onde estão as fotos no SharePoint ----
-    siteHost: "azimemoda.sharepoint.com",    // domínio do seu SharePoint (do endereço do site)
-    sitePath: "/sites/portalazime",          // caminho do site (depois do domínio)
-    biblioteca: "Documentos",                // nome da biblioteca (Document Library). Padrão = "Documentos"
-    pasta: "Mural",                          // pasta dentro da biblioteca ("" = raiz da biblioteca)
-
-    // ---- Visual ----
-    segundos: 8,
-    ordemAleatoria: false,
-    efeitoZoom: true,
-    mostrarRelogio: false,
-    mostrarLogo: true,
+    segundos: 8,            // tempo de cada foto
+    ordemAleatoria: false,  // true = embaralha as fotos
+    efeitoZoom: true,       // zoom suave (Ken Burns)
+    mostrarRelogio: false,  // relogio + data no canto
+    mostrarLogo: false,     // logo GRUPO AZIME no canto
+    mostrarBarra: false,    // barra de progresso no topo
     logoNome: "GRUPO AZIME",
     logoSub: "JOIAS QUE FICAM",
-    atualizarMin: 10                          // re-checa novas fotos a cada X minutos
+    atualizarMin: 5,        // re-checa novas fotos a cada X minutos (precisa do servidor)
+    manterTelaLigada: true  // impede o tablet de apagar a tela
   };
 </script>
-<script src="https://alcdn.msauth.net/browser/3.10.0/js/msal-browser.min.js"></script>
+<script src="fotos.js"></script>
 
 <div id="stage">
   <div class="layer" id="L0"><div class="bg"></div><div class="pic"></div></div>
@@ -70,144 +95,397 @@
 </div>
 <div id="vin"></div>
 <div id="prog"></div>
-<div id="clock" style="display:none"><div id="hora">--:--</div><div id="data">—</div></div>
-<div id="logo" style="display:none"><div class="mark">◆</div><div class="nm"></div><div class="sb"></div></div>
-<div id="status"></div>
+<div id="clock"><div id="hora">--:--</div><div id="data">&mdash;</div></div>
+<div id="logo"><div class="mark">&#9670;</div><div class="nm"></div><div class="sb"></div></div>
 
-<div id="start">
+<div id="inicio">
   <div class="card">
-    <div class="ic">🖼️</div>
+    <div class="ic">&#128142;</div>
     <h1>Mural Azime</h1>
-    <p>Toque para entrar com sua conta Microsoft e iniciar o mural em tela cheia.<br>As fotos vêm do SharePoint e passam sozinhas, em loop.</p>
-    <div class="btn">▶ Entrar e iniciar</div>
+    <div class="sub" id="subtitulo">Joias que ficam</div>
+
+    <div class="ask" id="pergunta">Quais fotos você quer que passem?</div>
+    <div id="marcas"></div>
+
+    <button class="btn" id="iniciar" disabled>&#9654; Iniciar em tela cheia</button>
+
+    <div class="dica" id="dica">
+      Toque em uma ou mais marcas e depois em <b>Iniciar</b>.<br>
+      Já rodando, <b>toque 3 vezes na tela</b> para voltar aqui e trocar de marca.
+    </div>
+    <div class="erro" id="erro"></div>
   </div>
 </div>
 
-<div id="msg"><div class="card"><div class="ic">⚠️</div><h1 id="msgt">—</h1><p id="msgp"></p></div></div>
+<div id="toast"></div>
 
 <script>
 (function(){
-  const layers=[document.getElementById('L0'),document.getElementById('L1')];
-  const prog=document.getElementById('prog');
-  const statusEl=document.getElementById('status');
-  const dur=(CONFIG.segundos||8);
-  let fotos=[], idx=0, cur=0, timer=null, refreshTimer=null, msal=null, account=null;
+  "use strict";
 
-  function stat(t){statusEl.textContent=t||'';}
-  function erro(titulo,texto){document.getElementById('start').style.display='none';document.getElementById('msgt').textContent=titulo;document.getElementById('msgp').innerHTML=texto;document.getElementById('msg').style.display='grid';}
+  const $  = function(id){ return document.getElementById(id); };
+  const layers = [$('L0'), $('L1')];
+  const prog = $('prog');
+  const dur = Math.max(2, CONFIG.segundos || 8);
 
-  // relógio / logo
-  if(CONFIG.mostrarRelogio){
-    const c=document.getElementById('clock');c.style.display='block';
-    const h=document.getElementById('hora'),dt=document.getElementById('data');
-    const fmt=new Intl.DateTimeFormat('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
-    (function tick(){const d=new Date();h.textContent=d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});dt.textContent=fmt.format(d);setTimeout(tick,1000);})();
+  let catalogo = {};      // { MARCA: [caminhos...] }
+  let selecao  = [];      // marcas escolhidas
+  let fotos    = [];      // playlist atual
+  let idx = 0, cur = 0, timer = null, refreshTimer = null, rodando = false, wl = null;
+
+  /* ---------------- utilidades ---------------- */
+
+  // encoda cada pedaco do caminho: resolve espaco, acento, # e & nos nomes das pastas
+  function urlDe(rel){
+    return rel.split('/').map(encodeURIComponent).join('/');
   }
-  if(CONFIG.mostrarLogo){const l=document.getElementById('logo');l.style.display='block';l.querySelector('.nm').textContent=CONFIG.logoNome||'';l.querySelector('.sb').textContent=CONFIG.logoSub||'';}
-
-  // ---- slideshow ----
-  function embaralha(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-  function mostrar(url){
-    const next=1-cur,L=layers[next];
-    L.querySelector('.bg').style.backgroundImage="url('"+url+"')";
-    const pic=L.querySelector('.pic');pic.style.backgroundImage="url('"+url+"')";
-    pic.classList.toggle('zoom',!!CONFIG.efeitoZoom);pic.style.setProperty('--dur',dur+'s');
-    pic.style.animation='none';void pic.offsetWidth;pic.style.animation='';
-    layers[cur].classList.remove('on');L.classList.add('on');cur=next;
-    prog.style.transition='none';prog.style.width='0';
-    requestAnimationFrame(()=>{prog.style.transition='width '+dur+'s linear';prog.style.width='100%';});
-    const nx=fotos[(idx+1)%fotos.length];if(nx){const pi=new Image();pi.src=nx;}
-  }
-  function proxima(){if(!fotos.length)return;mostrar(fotos[idx]);idx=(idx+1)%fotos.length;}
-  function comecarLoop(){clearInterval(timer);idx=0;proxima();timer=setInterval(proxima,dur*1000);}
-
-  // ---- Microsoft Graph ----
-  const GRAPH="https://graph.microsoft.com/v1.0";
-  async function gget(url,token){
-    const r=await fetch(url.startsWith('http')?url:GRAPH+url,{headers:{Authorization:"Bearer "+token}});
-    if(!r.ok){throw new Error("Graph "+r.status+" em "+url);}
-    return r.json();
-  }
-  async function carregarFotos(token){
-    stat("Buscando fotos no SharePoint…");
-    // 1) site
-    const site=await gget("/sites/"+CONFIG.siteHost+":"+CONFIG.sitePath,token);
-    // 2) biblioteca (drive)
-    const drives=await gget("/sites/"+site.id+"/drives",token);
-    let drive=drives.value.find(d=>(d.name||"").toLowerCase()===(CONFIG.biblioteca||"").toLowerCase());
-    if(!drive) drive=drives.value.find(d=>d.name==="Documents"||d.name==="Documentos")||drives.value[0];
-    if(!drive) throw new Error("Biblioteca não encontrada");
-    // 3) itens da pasta (com paginação)
-    const base=CONFIG.pasta ? "/drives/"+drive.id+"/root:/"+encodeURI(CONFIG.pasta)+":/children" : "/drives/"+drive.id+"/root/children";
-    let url=base+"?$top=200&$select=name,file,@microsoft.graph.downloadUrl";
-    const urls=[];
-    while(url){
-      const page=await gget(url,token);
-      (page.value||[]).forEach(it=>{
-        if(it.file && /^image\//.test(it.file.mimeType||"")){
-          const d=it["@microsoft.graph.downloadUrl"]; if(d) urls.push({name:it.name,url:d});
-        }
-      });
-      url=page["@odata.nextLink"]||null;
+  function embaralha(a){
+    for (let i = a.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      const t = a[i]; a[i] = a[j]; a[j] = t;
     }
-    urls.sort((a,b)=>a.name.localeCompare(b.name,'pt',{numeric:true}));
-    return urls.map(u=>u.url);
+    return a;
   }
-  async function token(){
-    try{const r=await msal.acquireTokenSilent({scopes:["Sites.Read.All"],account});return r.accessToken;}
-    catch(e){ msal.acquireTokenRedirect({scopes:["Sites.Read.All"],account}); throw e; }
+  function toast(txt, ms){
+    const t = $('toast');
+    t.textContent = txt;
+    t.style.display = 'block';
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function(){ t.style.display = 'none'; }, ms || 4000);
   }
-  async function atualizar(){
-    try{
-      const t=await token();
-      const novas=await carregarFotos(t);
-      if(!novas.length){erro("Nenhuma foto na pasta","Coloque imagens em <code>"+(CONFIG.pasta||'raiz')+"</code> da biblioteca <code>"+CONFIG.biblioteca+"</code> no site <code>"+CONFIG.sitePath+"</code>.");return;}
-      fotos=CONFIG.ordemAleatoria?embaralha(novas):novas;
-      stat("");
-      if(!timer) comecarLoop();
-    }catch(e){ stat("Falha ao atualizar: "+e.message); }
-  }
-
-  async function iniciar(){
-    if(CONFIG.clientId.indexOf("COLE_AQUI")===0){erro("Falta configurar","Abra o <code>index.html</code> no VS Code e preencha <b>clientId</b> e <b>tenantId</b> na seção CONFIGURAÇÕES (peça ao time de TI). Veja o arquivo <code>LEIA-ME-SHAREPOINT.txt</code>.");return;}
-    if(typeof msalBrowser==='undefined' && typeof msal==='undefined'){erro("Sem internet?","Não foi possível carregar o login da Microsoft (MSAL). Verifique a conexão do tablet.");return;}
-    const M=window.msal;
-    msal=new M.PublicClientApplication({
-      auth:{clientId:CONFIG.clientId,authority:"https://login.microsoftonline.com/"+CONFIG.tenantId,redirectUri:location.href.split('#')[0].split('?')[0]},
-      cache:{cacheLocation:"localStorage"}
+  function carregar(url){
+    return new Promise(function(ok, falha){
+      const im = new Image();
+      im.onload  = function(){ ok(url); };
+      im.onerror = function(){ falha(url); };
+      im.src = url;
     });
-    await msal.initialize();
-    const resp=await msal.handleRedirectPromise();
-    if(resp&&resp.account) msal.setActiveAccount(resp.account);
-    account=msal.getActiveAccount()||msal.getAllAccounts()[0];
-    if(!account){ stat("Redirecionando para o login…"); msal.loginRedirect({scopes:["Sites.Read.All"]}); return; }
-    msal.setActiveAccount(account);
-    document.getElementById('start').style.display='none';
-    try{const el=document.documentElement;(el.requestFullscreen||function(){}).call(el);}catch(e){}
-    await atualizar();
-    clearInterval(refreshTimer);
-    refreshTimer=setInterval(atualizar,(CONFIG.atualizarMin||10)*60000);
   }
 
-  // se já voltou de um login (redirect), inicia sozinho; senão espera o toque
-  window.addEventListener('load',async ()=>{
+  /* ---------------- relogio / logo ---------------- */
+
+  if (CONFIG.mostrarRelogio){
+    $('clock').style.display = 'block';
+    const h = $('hora'), dt = $('data');
+    const fmt = new Intl.DateTimeFormat('pt-BR', {weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+    (function tick(){
+      const d = new Date();
+      h.textContent  = d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+      dt.textContent = fmt.format(d);
+      setTimeout(tick, 1000);
+    })();
+  }
+  if (CONFIG.mostrarLogo){
+    const l = $('logo');
+    l.style.display = 'block';
+    l.querySelector('.nm').textContent = CONFIG.logoNome || '';
+    l.querySelector('.sb').textContent = CONFIG.logoSub || '';
+  }
+  if (CONFIG.mostrarBarra) prog.style.display = 'block';
+
+  /* ---------------- catalogo de fotos ---------------- */
+
+  // o PowerShell pode gravar uma marca de 1 foto so como texto em vez de lista
+  function normalizar(marcas){
+    const out = {};
+    Object.keys(marcas || {}).forEach(function(m){
+      const v = marcas[m];
+      out[m] = Array.isArray(v) ? v : (typeof v === 'string' && v ? [v] : []);
+    });
+    return out;
+  }
+
+  async function lerCatalogo(){
+    // 1) servidor rodando: le o fotos.json sempre fresco (pega fotos novas sozinho)
     try{
-      const M=window.msal;
-      if(M && CONFIG.clientId.indexOf("COLE_AQUI")!==0){
-        const inst=new M.PublicClientApplication({auth:{clientId:CONFIG.clientId,authority:"https://login.microsoftonline.com/"+CONFIG.tenantId,redirectUri:location.href.split('#')[0].split('?')[0]},cache:{cacheLocation:"localStorage"}});
-        await inst.initialize();
-        const r=await inst.handleRedirectPromise();
-        if((r&&r.account)||inst.getAllAccounts().length){ iniciar(); return; }
+      const r = await fetch('fotos.json?_=' + Date.now(), {cache:'no-store'});
+      if (r.ok){
+        const j = await r.json();
+        if (j && j.marcas) return normalizar(j.marcas);
       }
-    }catch(e){}
+    }catch(e){ /* duplo-clique (file://) cai no plano B */ }
+
+    // 2) plano B: fotos.js carregado junto com a pagina
+    if (window.MURAL_FOTOS && window.MURAL_FOTOS.marcas) return normalizar(window.MURAL_FOTOS.marcas);
+    return null;
+  }
+
+  function qtDe(m){ return (catalogo[m] || []).length; }
+
+  // as marcas fixas do CONFIG primeiro, depois qualquer pasta nova encontrada
+  function todasAsMarcas(){
+    const lista = (CONFIG.marcas || []).slice();
+    Object.keys(catalogo || {}).forEach(function(m){
+      if (lista.indexOf(m) < 0) lista.push(m);
+    });
+    return lista;
+  }
+  // so estas podem ser escolhidas de fato
+  function marcasComFoto(){
+    return todasAsMarcas().filter(function(m){ return qtDe(m) > 0; });
+  }
+
+  function montarBotoes(){
+    const box = $('marcas');
+    box.innerHTML = '';
+    const nomes = todasAsMarcas();
+    const comFoto = marcasComFoto();
+
+    if (!comFoto.length){
+      $('pergunta').textContent = 'Nenhuma foto encontrada';
+      $('dica').innerHTML = 'Coloque as fotos em <code>FOTOS\\NOME-DA-MARCA</code> e rode o ' +
+                            '<code>Atualizar fotos.cmd</code>. Subpastas <b>SEM TRATAR</b>, ' +
+                            '<b>SEM EDIÇÃO</b>, <b>NÃO USAR</b> e <b>VÍDEOS</b> são ignoradas de propósito.';
+      $('iniciar').disabled = true;
+      return;
+    }
+
+    // botao TODAS + um por marca
+    const itens = [{chave:'*', rotulo:'TODAS', qt: comFoto.reduce(function(s,m){ return s + qtDe(m); }, 0)}];
+    nomes.forEach(function(m){ itens.push({chave:m, rotulo:m, qt:qtDe(m)}); });
+
+    itens.forEach(function(it){
+      const b = document.createElement('button');
+      b.className = 'chip';
+      b.dataset.marca = it.chave;
+      const legenda = it.qt > 0 ? (it.qt + (it.qt === 1 ? ' foto' : ' fotos')) : 'aguardando fotos';
+      b.innerHTML = it.rotulo + '<span class="qt">' + legenda + '</span>';
+      if (it.qt === 0){
+        b.disabled = true;
+        b.title = 'Sem foto tratada em FOTOS\\' + it.rotulo + ' ainda';
+      } else {
+        b.addEventListener('click', function(){ alternar(it.chave); });
+      }
+      box.appendChild(b);
+    });
+
+    pintar();
+  }
+
+  function alternar(chave){
+    const nomes = marcasComFoto();
+    if (chave === '*'){
+      // TODAS liga tudo (ou desliga tudo, se ja estava tudo ligado)
+      selecao = (selecao.length === nomes.length) ? [] : nomes.slice();
+    } else if (selecao.indexOf(chave) >= 0){
+      selecao = selecao.filter(function(m){ return m !== chave; });
+    } else {
+      selecao = selecao.concat([chave]);
+    }
+    pintar();
+    salvarSelecao();
+  }
+
+  function pintar(){
+    const nomes = marcasComFoto();
+    const todas = nomes.length > 0 && selecao.length === nomes.length;
+    Array.prototype.forEach.call(document.querySelectorAll('.chip'), function(c){
+      const m = c.dataset.marca;
+      c.classList.toggle('on', m === '*' ? todas : selecao.indexOf(m) >= 0);
+    });
+    const qt = montarPlaylist().length;
+    $('iniciar').disabled = qt === 0;
+    $('iniciar').innerHTML = qt ? ('▶ Iniciar (' + qt + ' fotos)') : '▶ Iniciar em tela cheia';
+  }
+
+  function montarPlaylist(){
+    const lista = [];
+    selecao.forEach(function(m){
+      (catalogo[m] || []).forEach(function(p){ lista.push(p); });
+    });
+    return lista;
+  }
+
+  function salvarSelecao(){
+    try{ localStorage.setItem('muralAzime.marcas', JSON.stringify(selecao)); }catch(e){}
+  }
+  function lerSelecaoSalva(){
+    try{
+      const s = JSON.parse(localStorage.getItem('muralAzime.marcas') || '[]');
+      const nomes = marcasComFoto();
+      return Array.isArray(s) ? s.filter(function(m){ return nomes.indexOf(m) >= 0; }) : [];
+    }catch(e){ return []; }
+  }
+
+  /* ---------------- slideshow ---------------- */
+
+  function mostrar(url){
+    const prox = 1 - cur, L = layers[prox];
+    L.querySelector('.bg').style.backgroundImage = 'url("' + url + '")';
+    const pic = L.querySelector('.pic');
+    pic.style.backgroundImage = 'url("' + url + '")';
+    pic.classList.toggle('zoom', !!CONFIG.efeitoZoom);
+    pic.style.setProperty('--dur', dur + 's');
+    pic.style.animation = 'none'; void pic.offsetWidth; pic.style.animation = '';
+    layers[cur].classList.remove('on');
+    L.classList.add('on');
+    cur = prox;
+
+    if (CONFIG.mostrarBarra){
+      prog.style.transition = 'none'; prog.style.width = '0';
+      requestAnimationFrame(function(){
+        prog.style.transition = 'width ' + dur + 's linear';
+        prog.style.width = '100%';
+      });
+    }
+    // pre-carrega a proxima
+    const nx = fotos[idx];
+    if (nx) { const p = new Image(); p.src = urlDe(nx); }
+  }
+
+  async function proxima(){
+    if (!fotos.length) return;
+    let tentativas = 0;
+    while (tentativas < Math.min(fotos.length, 10)){
+      const rel = fotos[idx];
+      idx = (idx + 1) % fotos.length;
+      try{
+        const url = await carregar(urlDe(rel));
+        mostrar(url);
+        return;
+      }catch(e){
+        // foto que nao abre (arquivo movido, formato nao suportado): tira da lista
+        fotos = fotos.filter(function(f){ return f !== rel; });
+        if (!fotos.length){ pararLoop(); voltarInicio('As fotos da seleção não abriram.'); return; }
+        idx = idx % fotos.length;
+        tentativas++;
+      }
+    }
+  }
+
+  function agendar(){
+    clearTimeout(timer);
+    timer = setTimeout(async function(){ await proxima(); agendar(); }, dur * 1000);
+  }
+  function pararLoop(){ clearTimeout(timer); timer = null; }
+
+  async function comecar(){
+    fotos = montarPlaylist();
+    if (CONFIG.ordemAleatoria) embaralha(fotos);
+    if (!fotos.length) return;
+    idx = 0; rodando = true;
+    document.body.classList.add('rodando');
+    $('inicio').style.display = 'none';
+    try{ const el = document.documentElement; if (el.requestFullscreen) el.requestFullscreen(); }catch(e){}
+    manterAcordado();
+    await proxima();
+    agendar();
+  }
+
+  function voltarInicio(msg){
+    rodando = false;
+    pararLoop();
+    document.body.classList.remove('rodando');
+    layers.forEach(function(l){ l.classList.remove('on'); });
+    $('erro').textContent = msg || '';
+    $('inicio').style.display = 'grid';
+    pintar();
+  }
+
+  /* ---------------- tela sempre ligada ---------------- */
+
+  async function manterAcordado(){
+    if (!CONFIG.manterTelaLigada || !('wakeLock' in navigator)) return;
+    try{
+      wl = await navigator.wakeLock.request('screen');
+      wl.addEventListener('release', function(){ wl = null; });
+    }catch(e){ /* sem suporte: use o Fully Kiosk pra manter a tela ligada */ }
+  }
+  document.addEventListener('visibilitychange', function(){
+    if (document.visibilityState === 'visible' && rodando && !wl) manterAcordado();
   });
-  document.getElementById('start').addEventListener('click',iniciar);
-  document.addEventListener('keydown',e=>{
-    if(e.key==='f'||e.key==='F'){const el=document.documentElement;(document.fullscreenElement?document.exitFullscreen():el.requestFullscreen()).catch&&0;}
-    if(!fotos.length)return;
-    if(e.key==='ArrowRight'){clearInterval(timer);proxima();timer=setInterval(proxima,dur*1000);}
-    if(e.key==='ArrowLeft'){clearInterval(timer);idx=(idx-2+fotos.length)%fotos.length;proxima();timer=setInterval(proxima,dur*1000);}
+
+  /* ---------------- atualizacao automatica ---------------- */
+
+  async function rechecar(){
+    const novo = await lerCatalogo();
+    if (!novo) return;
+    const antes = JSON.stringify(catalogo);
+    if (JSON.stringify(novo) === antes) return;
+
+    catalogo = novo;
+    if (rodando){
+      const atual = fotos[(idx - 1 + fotos.length) % fotos.length];
+      const nova = montarPlaylist();
+      if (CONFIG.ordemAleatoria) embaralha(nova);
+      if (nova.length){
+        fotos = nova;
+        const pos = fotos.indexOf(atual);
+        idx = pos >= 0 ? (pos + 1) % fotos.length : 0;
+      }
+    } else {
+      montarBotoes();
+    }
+  }
+
+  /* ---------------- controles ---------------- */
+
+  $('iniciar').addEventListener('click', comecar);
+
+  // 3 toques rapidos = volta pra escolha de marcas
+  let toques = 0, tToques = null;
+  document.addEventListener('pointerdown', function(){
+    if (!rodando) return;
+    toques++;
+    clearTimeout(tToques);
+    tToques = setTimeout(function(){ toques = 0; }, 900);
+    if (toques >= 3){ toques = 0; voltarInicio(); }
   });
+
+  // arrastar pro lado = navega
+  let x0 = null;
+  document.addEventListener('touchstart', function(e){ x0 = e.touches[0].clientX; }, {passive:true});
+  document.addEventListener('touchend', async function(e){
+    if (!rodando || x0 === null || !fotos.length) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    x0 = null;
+    if (Math.abs(dx) < 70) return;
+    pararLoop();
+    if (dx < 0){ await proxima(); }
+    else { idx = (idx - 2 + fotos.length) % fotos.length; await proxima(); }
+    agendar();
+  }, {passive:true});
+
+  document.addEventListener('keydown', async function(e){
+    if (e.key === 'f' || e.key === 'F'){
+      const el = document.documentElement;
+      if (document.fullscreenElement){ document.exitFullscreen(); } else if (el.requestFullscreen){ el.requestFullscreen(); }
+      return;
+    }
+    if (e.key === 'Escape' && rodando){ voltarInicio(); return; }
+    if (e.key === 'i' || e.key === 'I'){
+      toast('Marcas: ' + (selecao.join(', ') || 'nenhuma') + '  ·  ' + fotos.length + ' fotos na fila' +
+            (window.location.protocol === 'file:' ? '  ·  modo arquivo (sem atualização automática)' : ''), 6000);
+      return;
+    }
+    if (!rodando || !fotos.length) return;
+    if (e.key === 'ArrowRight'){ pararLoop(); await proxima(); agendar(); }
+    if (e.key === 'ArrowLeft'){ pararLoop(); idx = (idx - 2 + fotos.length) % fotos.length; await proxima(); agendar(); }
+  });
+
+  /* ---------------- start ---------------- */
+
+  (async function(){
+    const cat = await lerCatalogo();
+    if (!cat){
+      $('pergunta').textContent = 'Lista de fotos não encontrada';
+      $('dica').innerHTML = 'Rode o <code>Atualizar fotos.cmd</code> uma vez para gerar a lista ' +
+                            '(ele cria o arquivo <code>fotos.js</code>), depois recarregue esta página.';
+      $('iniciar').disabled = true;
+      return;
+    }
+    catalogo = cat;
+    montarBotoes();
+
+    // volta a selecao da ultima vez; se nao houver, comeca com TODAS
+    const salva = lerSelecaoSalva();
+    selecao = salva.length ? salva : marcasComFoto().slice();
+    pintar();
+
+    clearInterval(refreshTimer);
+    refreshTimer = setInterval(rechecar, Math.max(1, CONFIG.atualizarMin || 5) * 60000);
+  })();
+
 })();
 </script>
 </body>
