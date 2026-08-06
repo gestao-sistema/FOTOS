@@ -4,9 +4,26 @@
 
 Arquivo do mural:  index.html  (é o endereço principal do site)
 
-NO AR EM:  https://fotos-production-d497.up.railway.app
-           Esse endereço funciona de qualquer lugar, em qualquer tablet,
-           SEM precisar do PC ligado. É a forma recomendada de usar.
+DOIS LINKS, DOIS MURAIS
+───────────────────────
+  ALINARE + GRACE (principal)
+      https://fotos-production-d497.up.railway.app
+
+  NOVITAH (link separado)
+      https://fotos-production-d497.up.railway.app/novitah.html
+
+Funcionam de qualquer lugar, em qualquer tablet, SEM precisar do PC
+ligado. Cada link lembra a escolha de marca dele, separadamente —
+pode deixar um tablet em cada link ao mesmo tempo.
+
+IMPORTANTE: o novitah.html NÃO é uma cópia do mural. Ele só abre o
+index.html pedindo a marca NOVITAH. Existe UM mural só para dar
+manutenção — mexer no index.html arruma os dois links.
+
+Precisa do link de uma marca nova? Duas opções:
+  • direto no endereço:  .../?marcas=NOMEDAMARCA
+  • ou copie o novitah.html trocando o nome da marca lá dentro
+    (são 2 linhas), para virar .../nomedamarca.html
 
 (os antigos index-sharepoint.html e index-offline.html continuam na
  pasta, mas pode esquecê-los — este novo substitui os dois)
@@ -24,16 +41,25 @@ NO AR EM:  https://fotos-production-d497.up.railway.app
    Ele prepara as fotos e manda pro site. Em ~1 minuto o endereço
    https://fotos-production-d497.up.railway.app já mostra as novas.
 
-3) No tablet, abra esse endereço, escolha as marcas (ALINARE, GRACE,
-   NOVITAH ou TODAS) e toque em "▶ Iniciar". Pronto — passa sozinho,
-   em loop, pra sempre.
+3) No tablet, abra o link, escolha as marcas (TODAS, ALINARE, GRACE —
+   ou NOVITAH, no link dela) e toque em "▶ Iniciar". Pronto — passa
+   sozinho, em loop, pra sempre.
 
    (Se preferir rodar sem internet, pela Wi-Fi local, use o
     "Iniciar mural.cmd" — veja a seção NO TABLET mais abaixo.)
 
-Já rodando:
-   • toque 3 vezes na tela  → volta pra escolha de marcas
+JÁ RODANDO, os botões na tela:
+   ❮  seta na lateral esquerda  → foto anterior
+   ❯  seta na lateral direita   → próxima foto (para passar mais rápido)
+   ◀ Início, no topo da tela    → volta pra escolha de marcas
+
+   Eles ficam apagadinhos para não atrapalhar a foto, e acendem
+   sozinhos quando alguém toca ou mexe o mouse. Some depois de 3,5s.
+   Não quer botão nenhum? Em index.html: mostrarControles: false
+
+Também funciona:
    • arraste pro lado       → próxima / anterior
+   • toque 3 vezes na tela  → volta pra escolha de marcas
    • teclado: F = tela cheia, → ← navegam, Esc = voltar, i = info
 
 A escolha de marcas fica salva: se o tablet reiniciar, volta na mesma.
@@ -128,14 +154,22 @@ Android não deixa o mural travar a tela ligada — use o Fully Kiosk.
 Abra index.html no VS Code, seção "CONFIGURAÇÕES" no topo
 (depois de mexer, rode o "Publicar no site.cmd" pra valer no tablet):
 
-  marcas: ["ALINARE","GRACE","NOVITAH"]
-        os botões que aparecem SEMPRE, nessa ordem. Marca sem foto na
-        pasta fica no botão apagado, escrito "aguardando fotos", e se
+  marcas: ["ALINARE","GRACE"]
+        as marcas deste mural, nessa ordem. Marca sem foto na pasta
+        aparece com o botão apagado, escrito "aguardando fotos", e se
         acende sozinha quando você copiar as fotos dela.
-        Marca nova em FOTOS\ que não esteja nessa lista também ganha
-        botão automaticamente, no fim da fila.
 
-  segundos: 8           tempo de cada foto
+  apenasEstas: true
+        true  = mostra SÓ as marcas da linha acima (é por isso que a
+                NOVITAH não aparece no link principal)
+        false = qualquer pasta nova dentro de FOTOS\ também ganha botão
+
+  mostrarControles: true   setas nas laterais + botão Início no topo
+
+  segundos: 3           tempo de cada foto
+  transicao: 0.8        duração do cruzamento entre uma foto e a outra
+                        (0.3 = quase corte seco · nunca passa da metade
+                         do tempo da foto)
   ordemAleatoria: false  true = embaralha
   efeitoZoom: true      zoom suave em cada foto
   mostrarRelogio: false relógio + data no canto
@@ -162,4 +196,8 @@ O tablet não abre o endereço
         o "Iniciar mural.cmd" de novo e veja o endereço novo.
 
 Uma marca não aparece na tela de escolha
-      → só aparecem marcas que têm ao menos 1 foto aproveitável.
+      → no link principal aparecem só as marcas da lista "marcas" do
+        index.html (hoje ALINARE e GRACE), porque apenasEstas está
+        true. A NOVITAH tem o link dela: /novitah.html
+      → marca sem nenhuma foto aproveitável aparece com o botão
+        apagado ("aguardando fotos").

@@ -60,6 +60,29 @@
   .dica code{background:rgba(255,255,255,.08);padding:2px 7px;border-radius:5px;color:var(--goldl);font-size:12px}
   .erro{color:#ffb4a2;font-size:14px;margin-top:18px;line-height:1.6}
 
+  /* ---------- controles em cima da foto ---------- */
+  #controles{position:fixed;inset:0;z-index:8;display:none;pointer-events:none;
+             opacity:.28;transition:opacity .35s ease}
+  #controles.ativo{opacity:1}
+  body.rodando #controles{display:block}
+  body.rodando.mexendo{cursor:default}
+  .ctl{pointer-events:auto;position:fixed;appearance:none;cursor:pointer;color:#fff;
+       background:rgba(6,12,26,.55);border:1px solid rgba(201,162,74,.5);
+       -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+       transition:background .15s,transform .1s;display:grid;place-items:center}
+  .ctl:active{background:rgba(201,162,74,.9);color:#12203f;transform:scale(.94)}
+  .seta{top:50%;margin-top:-55px;width:66px;height:110px;border-radius:14px;
+        font-size:32px;line-height:1;padding-bottom:4px}
+  .seta.esq{left:18px}
+  .seta.dir{right:18px}
+  #btVoltar{top:18px;left:50%;transform:translateX(-50%);padding:13px 26px;border-radius:999px;
+            font-size:15px;font-weight:600;letter-spacing:1px}
+  #btVoltar:active{transform:translateX(-50%) scale(.96)}
+  @media (max-width:600px){
+    .seta{width:54px;height:92px;margin-top:-46px;font-size:26px}
+    .seta.esq{left:10px} .seta.dir{right:10px}
+  }
+
   #toast{position:fixed;left:50%;bottom:34px;transform:translateX(-50%);z-index:30;display:none;
          background:rgba(6,12,26,.9);border:1px solid rgba(201,162,74,.35);color:#e7ecf5;
          padding:11px 20px;border-radius:10px;font-size:13px;text-align:center;max-width:88vw}
@@ -71,9 +94,18 @@
 <!-- ================== CONFIGURACOES ================== -->
 <script>
   const CONFIG = {
-    // botoes que aparecem SEMPRE, nesta ordem (mesmo sem foto na pasta ainda).
-    // Marca nova em FOTOS\ que nao esteja aqui tambem ganha botao, no fim da fila.
-    marcas: ["ALINARE", "GRACE", "NOVITAH"],
+    // Marcas deste mural, nesta ordem (aparecem mesmo sem foto na pasta ainda).
+    marcas: ["ALINARE", "GRACE"],
+
+    // true  = mostra SOMENTE as marcas da linha acima
+    // false = qualquer pasta nova dentro de FOTOS\ tambem ganha botao
+    apenasEstas: true,
+
+    // Da para abrir um mural de outra marca pelo endereco, sem mexer aqui:
+    //    .../?marcas=NOVITAH          -> so NOVITAH
+    //    .../?marcas=ALINARE,GRACE    -> as duas
+    // O atalho pronto para a NOVITAH e o arquivo novitah.html.
+    mostrarControles: true, // setas nas laterais + botao Inicio no topo
 
     segundos: 3,            // tempo de cada foto
     transicao: 0.8,         // duracao do cruzamento entre uma foto e a outra
@@ -98,6 +130,12 @@
 <div id="prog"></div>
 <div id="clock"><div id="hora">--:--</div><div id="data">&mdash;</div></div>
 <div id="logo"><div class="mark">&#9670;</div><div class="nm"></div><div class="sb"></div></div>
+
+<div id="controles">
+  <button class="ctl" id="btVoltar" title="Voltar para a escolha de marcas">&#9664;&nbsp; Início</button>
+  <button class="ctl seta esq" id="btAnt"  title="Foto anterior" aria-label="Foto anterior">&#10094;</button>
+  <button class="ctl seta dir" id="btProx" title="Próxima foto"  aria-label="Próxima foto">&#10095;</button>
+</div>
 
 <div id="inicio">
   <div class="card">
@@ -217,9 +255,29 @@
 
   function qtDe(m){ return (catalogo[m] || []).length; }
 
-  // as marcas fixas do CONFIG primeiro, depois qualquer pasta nova encontrada
+  // ?marcas=NOVITAH  ou  ?marcas=ALINARE,GRACE  manda mais que o CONFIG:
+  // e o que permite ter um link distinto por marca usando o mesmo arquivo
+  function marcasDaUrl(){
+    try{
+      const p = new URLSearchParams(location.search).get('marcas');
+      if (!p) return null;
+      const chaves = Object.keys(catalogo || {});
+      const lista = p.split(',').map(function(s){ return s.trim(); }).filter(Boolean).map(function(s){
+        const igual = chaves.filter(function(k){ return k.toLowerCase() === s.toLowerCase(); })[0];
+        return igual || s.toUpperCase();
+      });
+      return lista.length ? lista : null;
+    }catch(e){ return null; }
+  }
+
+  // 1o o endereco, depois o CONFIG, e so entao as pastas encontradas
   function todasAsMarcas(){
+    const daUrl = marcasDaUrl();
+    if (daUrl) return daUrl;
+
     const lista = (CONFIG.marcas || []).slice();
+    if (CONFIG.apenasEstas && lista.length) return lista;
+
     Object.keys(catalogo || {}).forEach(function(m){
       if (lista.indexOf(m) < 0) lista.push(m);
     });
@@ -301,12 +359,17 @@
     return lista;
   }
 
+  // uma chave por conjunto de marcas: o link da NOVITAH e o principal ficam
+  // com memorias separadas, senao um sobrescreve a escolha do outro
+  function chaveGuardada(){
+    return 'muralAzime.marcas:' + todasAsMarcas().join('|');
+  }
   function salvarSelecao(){
-    try{ localStorage.setItem('muralAzime.marcas', JSON.stringify(selecao)); }catch(e){}
+    try{ localStorage.setItem(chaveGuardada(), JSON.stringify(selecao)); }catch(e){}
   }
   function lerSelecaoSalva(){
     try{
-      const s = JSON.parse(localStorage.getItem('muralAzime.marcas') || '[]');
+      const s = JSON.parse(localStorage.getItem(chaveGuardada()) || '[]');
       const nomes = marcasComFoto();
       return Array.isArray(s) ? s.filter(function(m){ return nomes.indexOf(m) >= 0; }) : [];
     }catch(e){ return []; }
@@ -375,6 +438,7 @@
     manterAcordado();
     await proxima();
     agendar();
+    acordar();   // mostra as setas por alguns segundos, para quem nao sabe que existem
   }
 
   function voltarInicio(msg){
@@ -427,10 +491,43 @@
 
   $('iniciar').addEventListener('click', comecar);
 
-  // 3 toques rapidos = volta pra escolha de marcas
+  // ---- setas e botao Inicio sobre a foto ----
+  // ficam discretos e acendem ao toque/mouse, para nao poluir o mural
+  const painel = $('controles');
+  let tApagar = null;
+  function acordar(){
+    if (!rodando || !CONFIG.mostrarControles) return;
+    painel.classList.add('ativo');
+    document.body.classList.add('mexendo');
+    clearTimeout(tApagar);
+    tApagar = setTimeout(function(){
+      painel.classList.remove('ativo');
+      document.body.classList.remove('mexendo');
+    }, 3500);
+  }
+  document.addEventListener('pointermove', acordar, {passive:true});
+
+  async function pular(passo){
+    if (!fotos.length) return;
+    pararLoop();
+    if (passo < 0) idx = (idx - 2 + fotos.length) % fotos.length;
+    await proxima();
+    agendar();
+  }
+
+  $('btProx').addEventListener('click', function(e){ e.stopPropagation(); acordar(); pular(1); });
+  $('btAnt').addEventListener('click',  function(e){ e.stopPropagation(); acordar(); pular(-1); });
+  $('btVoltar').addEventListener('click', function(e){ e.stopPropagation(); voltarInicio(); });
+
+  if (!CONFIG.mostrarControles) painel.style.display = 'none';
+
+  // 3 toques rapidos = volta pra escolha de marcas (atalho antigo, ainda vale)
   let toques = 0, tToques = null;
-  document.addEventListener('pointerdown', function(){
+  document.addEventListener('pointerdown', function(e){
+    acordar();
     if (!rodando) return;
+    // toque nos botoes nao conta para o triplo-toque
+    if (e.target && e.target.closest && e.target.closest('#controles')) return;
     toques++;
     clearTimeout(tToques);
     tToques = setTimeout(function(){ toques = 0; }, 900);
@@ -480,6 +577,14 @@
       return;
     }
     catalogo = cat;
+
+    // link de uma marca so (ex.: novitah.html): mostra o nome dela no subtitulo
+    const daUrl = marcasDaUrl();
+    if (daUrl && daUrl.length === 1){
+      $('subtitulo').textContent = daUrl[0];
+      document.title = 'Mural ' + daUrl[0].charAt(0) + daUrl[0].slice(1).toLowerCase();
+    }
+
     montarBotoes();
 
     // volta a selecao da ultima vez; se nao houver, comeca com TODAS
