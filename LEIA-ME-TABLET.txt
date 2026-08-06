@@ -4,26 +4,34 @@
 
 Arquivo do mural:  index.html  (é o endereço principal do site)
 
-DOIS LINKS, DOIS MURAIS
-───────────────────────
-  ALINARE + GRACE (principal)
+TRÊS LINKS, UM MURAL
+────────────────────
+  ALINARE + GRACE (principal, com o botão TODAS)
       https://fotos-production-d497.up.railway.app
 
-  NOVITAH (link separado)
+  SÓ GRACE
+      https://fotos-production-d497.up.railway.app/grace.html
+
+  SÓ NOVITAH
       https://fotos-production-d497.up.railway.app/novitah.html
 
 Funcionam de qualquer lugar, em qualquer tablet, SEM precisar do PC
-ligado. Cada link lembra a escolha de marca dele, separadamente —
-pode deixar um tablet em cada link ao mesmo tempo.
+ligado. Cada link lembra a escolha dele, separadamente — pode deixar
+um tablet em cada link ao mesmo tempo, cada um com a sua marca.
 
-IMPORTANTE: o novitah.html NÃO é uma cópia do mural. Ele só abre o
-index.html pedindo a marca NOVITAH. Existe UM mural só para dar
-manutenção — mexer no index.html arruma os dois links.
+Nos links de UMA marca só (grace.html, novitah.html) não aparece o
+botão TODAS: ele mostraria o mesmo total da única marca. Aparece só o
+botão da marca, já escolhido, e o "▶ Iniciar".
 
-Precisa do link de uma marca nova? Duas opções:
-  • direto no endereço:  .../?marcas=NOMEDAMARCA
-  • ou copie o novitah.html trocando o nome da marca lá dentro
-    (são 2 linhas), para virar .../nomedamarca.html
+IMPORTANTE: grace.html e novitah.html NÃO são cópias do mural. Cada um
+só abre o index.html pedindo a sua marca. Existe UM mural para dar
+manutenção — mexer no index.html arruma os três links.
+
+Precisa do link de outra marca (ALINARE sozinha, por exemplo)?
+  • direto no endereço:  .../?marcas=ALINARE
+  • ou copie o grace.html trocando o nome da marca lá dentro (são 2
+    linhas: o meta refresh e o location.replace), para virar
+    .../alinare.html
 
 (os antigos index-sharepoint.html e index-offline.html continuam na
  pasta, mas pode esquecê-los — este novo substitui os dois)
