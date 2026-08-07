@@ -177,7 +177,11 @@
     mostrarBarra: false,    // barra de progresso no topo
     logoNome: "GRUPO AZIME",
     logoSub: "JOIAS QUE FICAM",
-    atualizarMin: 5,        // re-checa novas fotos a cada X minutos (precisa do servidor)
+    // De quanto em quanto tempo o mural busca foto nova, EM MINUTOS.
+    // Em 1 minuto, o que alguem adicionar ou excluir no painel aparece aqui
+    // sozinho, sem ninguem tocar no tablet. A consulta e leve (a lista, nao
+    // as fotos), entao 1 minuto nao pesa.
+    atualizarMin: 1,
     manterTelaLigada: true, // impede o tablet de apagar a tela
 
     // Video entra no meio das fotos, sem som (o navegador nao deixa comecar

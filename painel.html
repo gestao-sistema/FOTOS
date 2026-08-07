@@ -55,7 +55,9 @@
 
   /* ---- lista ---- */
   h2{font-size:15px;letter-spacing:2px;text-transform:uppercase;color:#9fb0cc;margin:32px 0 12px;
-     border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:8px}
+     border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:8px;
+     display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  h2 span{color:var(--goldl);letter-spacing:0;text-transform:none;font-size:13px;font-weight:400}
   .grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px}
   .item{position:relative;border:1px solid rgba(255,255,255,.1);border-radius:11px;overflow:hidden;
         background:#0d1730;aspect-ratio:1;display:grid;place-items:center}
@@ -77,6 +79,33 @@
   .alerta h3{font-size:17px;font-weight:600;color:#ffd9cf;margin:8px 0 12px}
   .alerta p{color:#c9d2e2;font-size:14px;line-height:1.65;margin:8px auto;max-width:560px}
   .alerta .miudo{color:#8fa0bd;font-size:12.5px;margin-top:14px}
+
+  /* ---------- celular: alvos maiores e nada esticado ---------- */
+  @media (max-width:640px){
+    body{padding:16px 12px 44px}
+    header p{letter-spacing:2px;font-size:11px}
+    .abas{gap:8px}
+    .aba{flex:1 1 calc(50% - 8px);padding:14px 10px;font-size:14px;min-width:0}
+    .destinos{gap:8px}
+    .dest{flex:1 1 calc(50% - 8px);padding:13px 10px;font-size:13.5px;min-width:0;
+          overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .verlink{font-size:12px;word-break:break-all;margin:12px 0 20px}
+    .solta{padding:24px 14px}
+    .btn{width:100%;padding:16px 20px;font-size:16px}     /* alvo de dedo */
+    .grade{grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:9px}
+    .item .x{width:38px;height:38px;font-size:19px}       /* excluir sem errar o toque */
+    .item .nome{font-size:10px;padding:14px 5px 5px}
+    .item .tag{font-size:9px;padding:2px 5px}
+    h2{font-size:13px;margin:26px 0 10px}
+    .alerta{padding:18px 14px}
+    .alerta h3{font-size:15.5px}
+    .alerta p{font-size:13.5px}
+    footer{font-size:11.5px}
+  }
+  @media (max-width:380px){
+    .aba,.dest{flex:1 1 100%}
+    .grade{grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}
+  }
   .item .x{position:absolute;right:6px;top:6px;width:30px;height:30px;border-radius:8px;border:0;cursor:pointer;
            background:rgba(6,12,26,.85);color:#ffb4a2;font-size:17px;line-height:1;display:grid;place-items:center}
   .item .x:hover{background:#b4402a;color:#fff}
@@ -264,42 +293,98 @@
 
   /* ---------------- enviar ---------------- */
 
-  function enviar(lista){
+  /* Envio em LOTES.
+     Suas fotos tem ~11 MB. Mandar 30 de uma vez seria uma requisicao de
+     330 MB pela internet: o servidor do Railway corta por tempo limite e
+     tudo se perde. Aqui os arquivos vao em grupos pequenos, um grupo por
+     vez, e o que ja subiu esta salvo mesmo se o resto falhar.              */
+  const MAX_ARQ = 6;                     // arquivos por lote
+  const MAX_BYTES = 70 * 1024 * 1024;    // ou 70 MB, o que vier primeiro
+
+  function fazerLotes(arquivos){
+    const lotes = [];
+    let atual = [], peso = 0;
+    arquivos.forEach(function(f){
+      if (atual.length && (atual.length >= MAX_ARQ || peso + f.size > MAX_BYTES)){
+        lotes.push(atual); atual = []; peso = 0;
+      }
+      atual.push(f); peso += f.size;
+    });
+    if (atual.length) lotes.push(atual);
+    return lotes;
+  }
+
+  function enviarLote(arquivos, aoProgredir){
+    return new Promise(function(resolve){
+      const fd = new FormData();
+      fd.append('pasta', destino);
+      arquivos.forEach(function(f){ fd.append('arquivos', f); });
+
+      const x = new XMLHttpRequest();
+      x.open('POST', '/api/upload');
+      x.timeout = 15 * 60 * 1000;
+      x.upload.onprogress = function(e){ if (e.lengthComputable) aoProgredir(e.loaded); };
+      x.onload = function(){
+        let r = {};
+        try{ r = JSON.parse(x.responseText); }catch(e){}
+        resolve(x.status >= 200 && x.status < 300 && r.ok
+          ? { ok:true, enviados: r.enviados || [] }
+          : { ok:false, erro: r.erro || ('erro ' + x.status) });
+      };
+      x.onerror   = function(){ resolve({ ok:false, erro:'conexão interrompida' }); };
+      x.ontimeout = function(){ resolve({ ok:false, erro:'demorou demais (tempo limite)' }); };
+      x.send(fd);
+    });
+  }
+
+  async function enviar(lista){
     const arquivos = Array.prototype.slice.call(lista || []);
     if (!arquivos.length) return;
 
-    const fd = new FormData();
-    fd.append('pasta', destino);
-    arquivos.forEach(function(f){ fd.append('arquivos', f); });
+    const lotes = fazerLotes(arquivos);
+    const pesoTotal = arquivos.reduce(function(s,f){ return s + f.size; }, 0);
+    const mb = Math.round(pesoTotal / 1048576);
 
     const barra = $('barra'), tira = barra.querySelector('i');
     barra.style.display = 'block'; tira.style.width = '0';
-    recado('Enviando ' + arquivos.length + ' arquivo(s)...', 'espera');
     $('escolher').disabled = true;
 
-    const x = new XMLHttpRequest();
-    x.open('POST', '/api/upload');
-    x.upload.onprogress = function(e){
-      if (e.lengthComputable) tira.style.width = Math.round(e.loaded / e.total * 100) + '%';
-    };
-    x.onload = function(){
-      $('escolher').disabled = false;
-      barra.style.display = 'none';
-      let r = {};
-      try{ r = JSON.parse(x.responseText); }catch(e){}
-      if (x.status >= 200 && x.status < 300 && r.ok){
-        recado('Pronto: ' + r.enviados.length + ' enviado(s). O mural já está atualizado.', 'ok');
-        listar();
-      } else {
-        recado('Falhou: ' + (r.erro || ('erro ' + x.status)), 'erro');
-      }
-    };
-    x.onerror = function(){
-      $('escolher').disabled = false;
-      barra.style.display = 'none';
-      recado('Falhou o envio (conexão).', 'erro');
-    };
-    x.send(fd);
+    let jaSubiu = 0, prontos = 0;
+    const falhas = [];
+
+    for (let i = 0; i < lotes.length; i++){
+      const lote = lotes[i];
+      const base = jaSubiu;
+      recado('Enviando ' + arquivos.length + ' arquivo(s), ' + mb + ' MB' +
+             (lotes.length > 1 ? '  ·  lote ' + (i + 1) + ' de ' + lotes.length : '') + '...', 'espera');
+
+      const r = await enviarLote(lote, function(carregado){
+        const total = pesoTotal || 1;
+        tira.style.width = Math.min(100, Math.round((base + carregado) / total * 100)) + '%';
+      });
+
+      jaSubiu = base + lote.reduce(function(s,f){ return s + f.size; }, 0);
+      tira.style.width = Math.round(jaSubiu / (pesoTotal || 1) * 100) + '%';
+
+      if (r.ok) prontos += r.enviados.length;
+      else falhas.push('lote ' + (i + 1) + ': ' + r.erro);
+
+      listar();   // vai aparecendo conforme sobe
+    }
+
+    $('escolher').disabled = false;
+    barra.style.display = 'none';
+
+    if (!falhas.length){
+      recado('Pronto: ' + prontos + ' enviado(s). O tablet mostra em até 1 minuto.', 'ok');
+    } else if (prontos){
+      recado(prontos + ' enviado(s), mas houve falha — ' + falhas.join(' · ') +
+             '. Selecione os que faltaram e envie de novo.', 'erro');
+    } else {
+      recado('Falhou: ' + falhas.join(' · '), 'erro');
+    }
+    listar();
+    vigiar();
   }
 
   async function excluir(it){
@@ -329,11 +414,12 @@
     vigia = setInterval(async function(){
       try{
         const e = await (await fetch('/api/estado')).json();
-        if (!e.preparando){
-          clearInterval(vigia);
-          recado('Pronto. O mural está com ' + e.total + ' itens.', 'ok');
-          listar();
-        }
+        if (e.preparando){ recado('Preparando as fotos...', 'espera'); return; }
+        if (e.publicando){ recado('Enviando para o site...', 'espera'); return; }
+        clearInterval(vigia);
+        if (e.erroPub) recado('As fotos entraram, mas o envio ao site falhou: ' + e.erroPub, 'erro');
+        else recado('Pronto: ' + e.total + ' itens no mural. O tablet mostra em até 1 minuto.', 'ok');
+        listar();
       }catch(err){ clearInterval(vigia); }
     }, 1200);
   }

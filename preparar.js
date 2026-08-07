@@ -262,7 +262,7 @@ function totalNaLista() {
   } catch (e) { return 0; }
 }
 
-async function preparar({ silencioso = false, aviso = () => {} } = {}) {
+async function preparar({ silencioso = false, aviso = () => {}, permitirEncolher = false } = {}) {
   const t0 = Date.now();
   const { escolhidos, ignorados, semSuporte, colisoes } = selecionar();
 
@@ -275,7 +275,9 @@ async function preparar({ silencioso = false, aviso = () => {} } = {}) {
      algumas fotos pelo painel continua funcionando; um sumico em massa nao. */
   const jaTem = totalNaLista();
   const encolheDemais = jaTem > 20 && escolhidos.length < jaTem / 2;
-  if (!escolhidos.length || encolheDemais) {
+  // permitirEncolher = a mudanca veio do painel, e portanto e intencional:
+  // quem esta usando acabou de excluir de proposito e a lista deve acompanhar
+  if (!permitirEncolher && (!escolhidos.length || encolheDemais)) {
     if (jaTem > 0) {
       const motivo = escolhidos.length
         ? `so encontrei ${escolhidos.length} arquivos em FOTOS, contra ${jaTem} na lista atual`

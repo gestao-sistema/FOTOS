@@ -120,22 +120,73 @@ let preparando = false;
 let fila = false;
 let ultimoLog = 'ainda nao rodou';
 let agendado = null;
+let filaEncolher = false;
 
 // junta varias mudancas em uma unica preparacao (ex.: excluir 10 fotos seguidas)
-function prepararEmBreve(ms) {
+function prepararEmBreve(ms, permitirEncolher) {
+  if (permitirEncolher) filaEncolher = true;
   if (agendado) clearTimeout(agendado);
-  agendado = setTimeout(() => { agendado = null; preparar(); }, ms || 1200);
+  agendado = setTimeout(() => {
+    agendado = null;
+    const enc = filaEncolher; filaEncolher = false;
+    preparar(enc);
+  }, ms || 1200);
 }
 
-async function preparar() {
-  if (preparando) { fila = true; return { jaRodando: true }; }
+/* ------------------------------------------------- publicar para o tablet
+   Isto serve apenas para quem roda o painel NO PC e quer que a mudanca chegue
+   ao site sozinha (commit e push automaticos, sem mexer em git).
+   No uso normal - painel e mural os dois no endereco do Railway - nao e
+   necessario: o site ja e o proprio servidor. Por isso vem DESLIGADO.
+   Para ligar: variavel PUBLICAR=1                                          */
+
+const PUBLICAR = process.env.PUBLICAR === '1';
+let publicando = false, ultimaPub = null, erroPub = null;
+
+function git(args) {
+  return new Promise((ok, falha) => {
+    const p = require('child_process').spawn('git', args, { cwd: AQUI, windowsHide: true });
+    let saida = '', erro = '';
+    p.stdout.on('data', d => { saida += d.toString(); });
+    p.stderr.on('data', d => { erro += d.toString(); });
+    p.on('close', c => (c === 0 ? ok(saida) : falha(new Error((erro || saida).trim().split('\n').slice(-3).join(' ')))));
+    p.on('error', falha);
+  });
+}
+
+async function publicar() {
+  if (!PUBLICAR || publicando) return;
+  publicando = true;
+  erroPub = null;
+  try {
+    await git(['add', '-A']);
+    const st = await git(['status', '--porcelain']);
+    const mudou = st.split('\n').filter(l => l.trim()).length;
+    if (!mudou) { console.log('  [publicar] nada mudou'); return; }
+
+    const quando = new Date().toLocaleString('pt-BR');
+    await git(['commit', '-q', '-m', `Atualiza fotos do mural (${mudou} arquivos, ${quando})`]);
+    await git(['push', 'origin', 'main']);
+    ultimaPub = new Date().toISOString();
+    console.log(`  [publicar] ${mudou} arquivos enviados ao site`);
+  } catch (e) {
+    erroPub = e.message;
+    console.log('  [publicar] FALHOU: ' + erroPub);
+  } finally {
+    publicando = false;
+  }
+}
+
+async function preparar(permitirEncolher) {
+  if (preparando) { fila = true; if (permitirEncolher) filaEncolher = true; return { jaRodando: true }; }
   preparando = true;
   const linhas = [];
   try {
-    const r = await prep.preparar({ aviso: t => { if (t) linhas.push(t); } });
+    const r = await prep.preparar({ permitirEncolher, aviso: t => { if (t) linhas.push(t); } });
     ultimoLog = linhas.slice(-25).join('\n');
     console.log(`  [preparar] ${r.total} itens em ${r.segundos}s ` +
                 `(${r.feitas} novas, ${r.orfaos} orfas apagadas)`);
+    if (!r.naoMexeu) publicar();     // manda para o site, para o tablet ver
     return r;
   } catch (e) {
     ultimoLog = 'falha ao preparar: ' + e.message;
@@ -289,11 +340,13 @@ app.post('/api/excluir', (req, res) => {
     return res.status(404).json({ erro: 'arquivo não encontrado' });
   }
 
+  // exclusao definitiva, como voce pediu: apaga o arquivo mesmo
   fs.unlinkSync(alvo);
   console.log(`  [excluir] ${pasta}/${rel}`);
   // a copia leve sai na limpeza de orfaos. Agendado, nao imediato: apagando
   // varios seguidos, roda UMA vez ao final em vez de uma vez por arquivo.
-  prepararEmBreve();
+  // permitirEncolher: a exclusao veio do painel, entao a lista deve encolher.
+  prepararEmBreve(1200, true);
   res.json({ ok: true, agendado: true });
 });
 
@@ -304,7 +357,11 @@ app.get('/api/estado', (req, res) => {
     total = j.total || 0;
     grupos = Object.fromEntries(Object.entries(j.marcas || {}).map(([k, v]) => [k, v.length]));
   } catch (e) { /* ainda nao existe */ }
-  res.json({ preparando: preparando || !!agendado, total, grupos, log: ultimoLog });
+  res.json({
+    preparando: preparando || !!agendado,
+    publicando, ultimaPub, erroPub, publicarLigado: PUBLICAR,
+    total, grupos, log: ultimoLog
+  });
 });
 
 /* ---------------------------------------------------------------- paginas */
