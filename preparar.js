@@ -37,8 +37,15 @@ function lerSharp() {
   return _sharp;
 }
 
-const RAIZ  = __dirname;
-const DADOS = process.env.DADOS_DIR || RAIZ;     // no Railway: o volume
+const RAIZ = __dirname;
+
+/* Onde ficam os arquivos:
+   1. DADOS_DIR, se voce definir
+   2. RAILWAY_VOLUME_MOUNT_PATH - o Railway injeta esta variavel sozinho
+      quando um volume esta anexado, entao basta CRIAR o volume: nao precisa
+      configurar variavel nenhuma
+   3. a propria pasta do projeto (uso local no PC)                          */
+const DADOS = process.env.DADOS_DIR || process.env.RAILWAY_VOLUME_MOUNT_PATH || RAIZ;
 const FOTOS = path.join(DADOS, 'FOTOS');
 const CACHE = path.join(DADOS, '_otimizadas');
 const NOME_CACHE = '_otimizadas';
