@@ -43,6 +43,9 @@ $Ignorar = @(
   @{ trecho = 'semtratar';  motivo = 'sem tratamento' },
   @{ trecho = 'nao tratad'; motivo = 'sem tratamento' },
   @{ trecho = 'sem edi';    motivo = 'sem edicao' },
+  @{ trecho = 'nao edit';   motivo = 'sem edicao' },   # "Nao editadas"
+  @{ trecho = 'sem editar'; motivo = 'sem edicao' },
+  @{ trecho = 'nao finaliz';motivo = 'sem edicao' },
   @{ trecho = 'nao usar';   motivo = 'marcada como nao usar' },
   @{ trecho = 'raw';        motivo = 'arquivo bruto' },
   @{ trecho = 'bruta';      motivo = 'arquivo bruto' },
