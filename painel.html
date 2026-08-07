@@ -79,6 +79,12 @@
   .alerta h3{font-size:17px;font-weight:600;color:#ffd9cf;margin:8px 0 12px}
   .alerta p{color:#c9d2e2;font-size:14px;line-height:1.65;margin:8px auto;max-width:560px}
   .alerta .miudo{color:#8fa0bd;font-size:12.5px;margin-top:14px}
+  .passos{max-width:520px;margin:16px auto;text-align:left;
+          background:rgba(6,12,26,.45);border:1px solid rgba(201,162,74,.25);
+          border-radius:11px;padding:16px 18px 16px 8px}
+  .passos ol{margin:0;padding-left:26px}
+  .passos li{color:#e7ecf5;font-size:14px;line-height:1.6;margin:7px 0}
+  .passos b{color:var(--goldl)}
 
   /* ---------- celular: alvos maiores e nada esticado ---------- */
   @media (max-width:640px){
@@ -130,15 +136,24 @@
 
   <div class="alerta" id="semOriginais" style="display:none">
     <div class="ic">&#9888;</div>
-    <h3>Este painel está no servidor da internet, e ele não tem as fotos</h3>
-    <p>As fotos originais ficam no seu PC (a pasta <code>FOTOS</code> tem 8 GB e não
-       é enviada para o servidor). Por isso não há nada para listar nem excluir aqui.</p>
-    <p><b>Para adicionar e excluir, use o painel do PC:</b><br>
+    <h3>Falta 1 passo no Railway: criar o disco</h3>
+    <p>Este servidor ainda não tem onde guardar arquivo. Sem isso, o que você
+       enviasse aqui seria perdido no próximo deploy — por isso o envio está
+       desativado e não há nada para listar.</p>
+    <div class="passos">
+      <ol>
+        <li>Abra o projeto no <b>Railway</b> e clique no serviço <b>FOTOS</b></li>
+        <li>Aba <b>Settings</b> → seção <b>Volumes</b> → <b>New Volume</b></li>
+        <li>Mount path: <code>/dados</code> &nbsp;·&nbsp; Tamanho: <b>2 GB</b></li>
+        <li>Aguarde o serviço reiniciar (~1 min)</li>
+      </ol>
+    </div>
+    <p>Pronto — no reinício o servidor detecta o disco sozinho, copia para dentro
+       dele as <b>435 fotos e vídeos</b> que já estão no mural, e esta tela vira o
+       painel de adicionar e excluir. <b>Não precisa criar variável nenhuma.</b></p>
+    <p class="miudo">Enquanto isso, para mexer nas fotos use o painel do PC:
        duplo-clique em <code>Abrir painel.cmd</code> e abra
        <code>http://localhost:5500/painel</code></p>
-    <p class="miudo">Para este painel funcionar na internet, falta <b>criar um volume de disco
-       no Railway</b> (uns 300 MB). Só isso: o servidor o detecta sozinho e copia as
-       fotos para dentro dele na primeira subida.</p>
   </div>
 
   <div class="solta" id="solta">
