@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel · Mural Azime</title>
+<style>
+  :root{ --gold:#c9a24a; --goldl:#e6cf96; --fundo:#0a1224; --caixa:#12203f; --linha:rgba(201,162,74,.25); }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;background:linear-gradient(160deg,#12203f,#0a1224 60%);color:#e7ecf5;
+       font-family:-apple-system,"Segoe UI",Roboto,system-ui,sans-serif;padding:26px 18px 60px}
+  .容{max-width:1080px;margin:0 auto}
+
+  header{text-align:center;margin-bottom:26px}
+  h1{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(26px,5vw,40px);
+     background-image:linear-gradient(100deg,#8a6a22,#c9a24a 18%,#fff6dd 34%,#e6cf96 50%,#c9a24a 66%,#fff8e3 82%,#8a6a22);
+     background-size:230% 100%;-webkit-background-clip:text;background-clip:text;
+     -webkit-text-fill-color:transparent;color:transparent;animation:corre 7s linear infinite}
+  @keyframes corre{from{background-position:230% 0}to{background-position:-30% 0}}
+  header p{color:#9fb0cc;font-size:13px;letter-spacing:3px;text-transform:uppercase;margin-top:4px}
+
+  /* ---- camadas ---- */
+  .abas{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:22px 0 6px}
+  .aba{appearance:none;border:1.5px solid var(--linha);background:rgba(255,255,255,.05);color:#e7ecf5;
+       padding:12px 20px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer}
+  .aba.on{background:linear-gradient(180deg,var(--goldl),var(--gold));border-color:var(--goldl);color:#12203f}
+  .aba small{display:block;font-weight:400;font-size:11px;opacity:.75}
+
+  .verlink{text-align:center;margin:14px 0 26px;font-size:13px;color:#9fb0cc}
+  .verlink a{color:var(--goldl)}
+
+  /* ---- destinos ---- */
+  .destinos{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;margin-bottom:20px}
+  .dest{appearance:none;border:1.5px dashed var(--linha);background:transparent;color:#c9d2e2;
+        padding:10px 16px;border-radius:9px;font-size:14px;cursor:pointer}
+  .dest.on{border-style:solid;border-color:var(--goldl);background:rgba(201,162,74,.16);color:#fff}
+  .dest b{color:var(--goldl);font-weight:600}
+
+  /* ---- enviar ---- */
+  .solta{border:2px dashed var(--linha);border-radius:14px;padding:30px 20px;text-align:center;
+         background:rgba(255,255,255,.03);transition:border-color .2s,background .2s}
+  .solta.sobre{border-color:var(--goldl);background:rgba(201,162,74,.12)}
+  .solta .ic{font-size:34px;color:var(--goldl)}
+  .solta p{color:#c9d2e2;margin:8px 0 4px}
+  .solta small{color:#8fa0bd}
+  .btn{appearance:none;border:0;margin-top:16px;padding:13px 30px;border-radius:10px;cursor:pointer;
+       background:linear-gradient(180deg,var(--goldl),var(--gold));color:#12203f;font-weight:700;font-size:15px}
+  .btn:disabled{opacity:.4;cursor:default}
+  .btn.fantasma{background:transparent;border:1.5px solid var(--linha);color:#c9d2e2;font-weight:600}
+
+  .barra{height:6px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:16px;display:none}
+  .barra i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--goldl));transition:width .2s}
+  .recado{margin-top:14px;font-size:14px;min-height:20px}
+  .recado.ok{color:#a8e6b8} .recado.erro{color:#ffb4a2} .recado.espera{color:var(--goldl)}
+
+  /* ---- lista ---- */
+  h2{font-size:15px;letter-spacing:2px;text-transform:uppercase;color:#9fb0cc;margin:32px 0 12px;
+     border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:8px}
+  .grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px}
+  .item{position:relative;border:1px solid rgba(255,255,255,.1);border-radius:11px;overflow:hidden;
+        background:#0d1730;aspect-ratio:1;display:grid;place-items:center}
+  .item img,.item video{width:100%;height:100%;object-fit:cover;display:block}
+  .item .tag{position:absolute;left:6px;top:6px;background:rgba(6,12,26,.85);color:var(--goldl);
+             font-size:10px;padding:3px 7px;border-radius:5px;letter-spacing:1px}
+  .item .nome{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(transparent,rgba(6,12,26,.95));
+              color:#e7ecf5;font-size:11px;padding:16px 7px 6px;word-break:break-all;line-height:1.35}
+  .item .nome i{color:var(--goldl);font-style:normal;font-size:10px;letter-spacing:.5px;opacity:.85}
+  .item.fora{opacity:.55}
+  .item.fora img,.item.fora video{filter:grayscale(.7)}
+  .item .tag.fora{top:auto;bottom:34px;left:6px;color:#ffb4a2;background:rgba(6,12,26,.9)}
+  .resumo{color:#9fb0cc;font-size:13px;margin:-4px 0 14px}
+  .resumo b{color:var(--goldl)}
+  .item .x{position:absolute;right:6px;top:6px;width:30px;height:30px;border-radius:8px;border:0;cursor:pointer;
+           background:rgba(6,12,26,.85);color:#ffb4a2;font-size:17px;line-height:1;display:grid;place-items:center}
+  .item .x:hover{background:#b4402a;color:#fff}
+  .vazio{color:#8fa0bd;font-size:14px;padding:14px 0}
+
+  footer{margin-top:40px;text-align:center;color:#7d8ba6;font-size:12px;line-height:1.7}
+  code{background:rgba(255,255,255,.08);padding:2px 6px;border-radius:5px;color:var(--goldl);font-size:12px}
+</style>
+</head>
+<body>
+<div class="容">
+
+  <header>
+    <h1>Painel do Mural</h1>
+    <p>Adicionar e excluir</p>
+  </header>
+
+  <div class="abas" id="abas"></div>
+  <div class="verlink" id="verlink"></div>
+
+  <div class="destinos" id="destinos"></div>
+
+  <div class="solta" id="solta">
+    <div class="ic">&#8679;</div>
+    <p><b>Arraste as fotos e vídeos aqui</b>, ou</p>
+    <input type="file" id="arquivos" multiple accept="image/*,video/*" hidden>
+    <button class="btn" id="escolher">Escolher arquivos</button>
+    <br><small id="dica">Sem limite de quantidade · jpg, png, webp, mp4, mov</small>
+    <div class="barra" id="barra"><i></i></div>
+    <div class="recado" id="recado"></div>
+  </div>
+
+  <h2 id="tituloLista">No destino</h2>
+  <div class="resumo" id="resumo"></div>
+  <div class="grade" id="grade"></div>
+  <div class="vazio" id="vazio" style="display:none">Nada aqui ainda.</div>
+
+  <footer>
+    O que você sobe aqui vai para <code>FOTOS\</code> e o mural se atualiza sozinho.<br>
+    Vídeo entra cortado em 15 s e sem som. Subpastas <b>SEM TRATAR</b>, <b>SEM EDIÇÃO</b>
+    e <b>NÃO USAR</b> continuam sendo ignoradas pelo mural.
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const $ = function(id){ return document.getElementById(id); };
+
+  let camadas = [], camada = null, destino = null;
+
+  function recado(txt, tipo){
+    const r = $('recado');
+    r.textContent = txt || '';
+    r.className = 'recado' + (tipo ? ' ' + tipo : '');
+  }
+
+  /* ---------------- camadas e destinos ---------------- */
+
+  async function carregarCamadas(){
+    const r = await fetch('/api/camadas');
+    camadas = (await r.json()).camadas || [];
+    const box = $('abas');
+    box.innerHTML = '';
+    camadas.forEach(function(c){
+      const b = document.createElement('button');
+      b.className = 'aba';
+      b.innerHTML = c.titulo + '<small>' + c.destinos.length + ' pastas</small>';
+      b.addEventListener('click', function(){ escolherCamada(c.id); });
+      b.dataset.id = c.id;
+      box.appendChild(b);
+    });
+    escolherCamada(camadas[0] && camadas[0].id);
+  }
+
+  function escolherCamada(id){
+    camada = camadas.filter(function(c){ return c.id === id; })[0] || camadas[0];
+    Array.prototype.forEach.call(document.querySelectorAll('.aba'), function(a){
+      a.classList.toggle('on', a.dataset.id === camada.id);
+    });
+    $('verlink').innerHTML = 'Mural desta camada: <a href="' + camada.link + '" target="_blank">' +
+                             location.origin + camada.link + '</a>';
+    const box = $('destinos');
+    box.innerHTML = '';
+    camada.destinos.forEach(function(d){
+      const b = document.createElement('button');
+      b.className = 'dest';
+      b.innerHTML = d.rotulo + ' <b id="qt-' + cssId(d.pasta) + '"></b>';
+      b.dataset.pasta = d.pasta;
+      b.addEventListener('click', function(){ escolherDestino(d.pasta); });
+      box.appendChild(b);
+    });
+    escolherDestino(camada.destinos[0].pasta);
+  }
+
+  function cssId(p){ return p.replace(/[^A-Za-z0-9]/g, '_'); }
+
+  function escolherDestino(pasta){
+    destino = pasta;
+    Array.prototype.forEach.call(document.querySelectorAll('.dest'), function(d){
+      d.classList.toggle('on', d.dataset.pasta === pasta);
+    });
+    const nome = (camada.destinos.filter(function(d){ return d.pasta === pasta; })[0] || {}).rotulo || pasta;
+    $('tituloLista').textContent = 'Em ' + nome;
+    $('dica').innerHTML = 'Vai para <code>FOTOS\\' + pasta.replace('/', '\\') + '</code> · sem limite de quantidade';
+    listar();
+  }
+
+  /* ---------------- lista ---------------- */
+
+  function url(caminho){
+    return caminho.split('/').map(encodeURIComponent).join('/');
+  }
+  function escapar(s){
+    return String(s).replace(/[&<>"]/g, function(c){
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c];
+    });
+  }
+
+  async function listar(){
+    const grade = $('grade');
+    grade.innerHTML = '<div class="vazio">Lendo a pasta...</div>';
+    let dados = { itens: [] };
+    try{
+      const r = await fetch('/api/itens?pasta=' + encodeURIComponent(destino));
+      dados = await r.json();
+    }catch(e){ recado('Não consegui ler a pasta.', 'erro'); }
+
+    const itens = dados.itens || [];
+    grade.innerHTML = '';
+    $('vazio').style.display = itens.length ? 'none' : 'block';
+
+    const cont = document.getElementById('qt-' + cssId(destino));
+    if (cont) cont.textContent = itens.length ? '· ' + itens.length : '';
+
+    const fora = itens.length - (dados.noMural || 0);
+    $('resumo').innerHTML = itens.length
+      ? (itens.length + ' arquivo(s) · <b>' + (dados.noMural || 0) + ' no mural</b>' +
+         (fora ? ' · ' + fora + ' fora (pasta SEM TRATAR / SEM EDIÇÃO / NÃO USAR)' : ''))
+      : '';
+
+    itens.forEach(function(it){
+      // miniatura usa a copia LEVE (191 KB); o original tem 11 MB
+      const src = it.thumb ? url(it.thumb)
+                           : url('FOTOS/' + destino + '/' + it.rel);
+      const d = document.createElement('div');
+      d.className = 'item' + (it.noMural ? '' : ' fora');
+      d.innerHTML =
+        (it.video
+          ? '<video src="' + src + '" muted playsinline preload="metadata"></video>'
+          : '<img src="' + src + '" alt="" loading="lazy">') +
+        '<span class="tag">' + (it.video ? 'VÍDEO' : it.mb + ' MB') + '</span>' +
+        (it.noMural ? '' : '<span class="tag fora">FORA DO MURAL</span>') +
+        '<button class="x" title="Excluir">&#10005;</button>' +
+        '<span class="nome">' + (it.sub ? '<i>' + escapar(it.sub) + '</i><br>' : '') + escapar(it.nome) + '</span>';
+      d.querySelector('.x').addEventListener('click', function(){ excluir(it); });
+      grade.appendChild(d);
+    });
+  }
+
+  /* ---------------- enviar ---------------- */
+
+  function enviar(lista){
+    const arquivos = Array.prototype.slice.call(lista || []);
+    if (!arquivos.length) return;
+
+    const fd = new FormData();
+    fd.append('pasta', destino);
+    arquivos.forEach(function(f){ fd.append('arquivos', f); });
+
+    const barra = $('barra'), tira = barra.querySelector('i');
+    barra.style.display = 'block'; tira.style.width = '0';
+    recado('Enviando ' + arquivos.length + ' arquivo(s)...', 'espera');
+    $('escolher').disabled = true;
+
+    const x = new XMLHttpRequest();
+    x.open('POST', '/api/upload');
+    x.upload.onprogress = function(e){
+      if (e.lengthComputable) tira.style.width = Math.round(e.loaded / e.total * 100) + '%';
+    };
+    x.onload = function(){
+      $('escolher').disabled = false;
+      barra.style.display = 'none';
+      let r = {};
+      try{ r = JSON.parse(x.responseText); }catch(e){}
+      if (x.status >= 200 && x.status < 300 && r.ok){
+        recado('Pronto: ' + r.enviados.length + ' enviado(s). O mural já está atualizado.', 'ok');
+        listar();
+      } else {
+        recado('Falhou: ' + (r.erro || ('erro ' + x.status)), 'erro');
+      }
+    };
+    x.onerror = function(){
+      $('escolher').disabled = false;
+      barra.style.display = 'none';
+      recado('Falhou o envio (conexão).', 'erro');
+    };
+    x.send(fd);
+  }
+
+  async function excluir(it){
+    const onde = it.sub ? ('\nPasta: ' + it.sub) : '';
+    if (!confirm('Excluir "' + it.nome + '" de vez?' + onde +
+                 '\n\nO arquivo é apagado da pasta e sai do mural.')) return;
+    recado('Excluindo...', 'espera');
+    try{
+      const r = await fetch('/api/excluir', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pasta: destino, rel: it.rel })
+      });
+      const j = await r.json();
+      if (j.ok){
+        recado('Excluído. Atualizando o mural...', 'espera');
+        listar();
+        vigiar();
+      } else recado('Falhou: ' + (j.erro || 'erro'), 'erro');
+    }catch(e){ recado('Falhou: ' + e.message, 'erro'); }
+  }
+
+  // acompanha a preparacao (que e agendada, para dar conta de varias exclusoes)
+  let vigia = null;
+  function vigiar(){
+    clearInterval(vigia);
+    vigia = setInterval(async function(){
+      try{
+        const e = await (await fetch('/api/estado')).json();
+        if (!e.preparando){
+          clearInterval(vigia);
+          recado('Pronto. O mural está com ' + e.total + ' itens.', 'ok');
+          listar();
+        }
+      }catch(err){ clearInterval(vigia); }
+    }, 1200);
+  }
+
+  /* ---------------- eventos ---------------- */
+
+  $('escolher').addEventListener('click', function(){ $('arquivos').click(); });
+  $('arquivos').addEventListener('change', function(e){ enviar(e.target.files); e.target.value = ''; });
+
+  const solta = $('solta');
+  ['dragenter','dragover'].forEach(function(ev){
+    solta.addEventListener(ev, function(e){ e.preventDefault(); solta.classList.add('sobre'); });
+  });
+  ['dragleave','drop'].forEach(function(ev){
+    solta.addEventListener(ev, function(e){ e.preventDefault(); solta.classList.remove('sobre'); });
+  });
+  solta.addEventListener('drop', function(e){ enviar(e.dataTransfer.files); });
+
+  carregarCamadas();
+})();
+</script>
+</body>
+</html>

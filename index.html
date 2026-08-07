@@ -39,10 +39,38 @@
   #inicio{position:fixed;inset:0;z-index:20;display:grid;place-items:center;overflow:auto;
           background:linear-gradient(135deg,#12203f,#0a1224);color:#fff}
   .card{width:100%;max-width:760px;text-align:center;padding:36px 26px 48px}
-  .card .ic{font-size:46px;color:var(--goldl);line-height:1}
-  .card h1{font-family:Georgia,"Times New Roman",serif;font-size:32px;margin:12px 0 6px;font-weight:400}
-  .card .sub{color:#9fb0cc;font-size:14px;letter-spacing:2px;text-transform:uppercase}
-  .card .ask{color:#c9d2e2;font-size:16px;margin:30px 0 14px}
+  .card .ask{color:#c9d2e2;font-size:16px;margin:34px 0 14px}
+
+  /* ---------- marca: nome em dourado + diamante brilhando ---------- */
+  .marca{display:grid;place-items:center;gap:6px}
+  .diamante{width:84px;height:84px;overflow:visible;filter:drop-shadow(0 4px 18px rgba(201,162,74,.45))}
+  .diamante .pedra{animation:flutua 4.5s ease-in-out infinite}
+  @keyframes flutua{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  .diamante .lampejo{animation:lampejo 3.4s ease-in-out infinite}
+  @keyframes lampejo{0%,72%,100%{opacity:0}80%{opacity:.85}88%{opacity:.25}}
+  .diamante .faisca{transform-box:fill-box;transform-origin:center;animation:faisca 2.6s ease-in-out infinite}
+  .diamante .faisca:nth-of-type(2){animation-delay:.5s}
+  .diamante .faisca:nth-of-type(3){animation-delay:1.1s}
+  .diamante .faisca:nth-of-type(4){animation-delay:1.7s}
+  @keyframes faisca{0%,100%{opacity:0;transform:scale(.4)}45%{opacity:1;transform:scale(1)}}
+
+  #titulo{
+    font-family:Georgia,"Times New Roman",serif;font-weight:400;
+    font-size:clamp(34px,7.5vw,62px);line-height:1.08;letter-spacing:.5px;margin-top:6px;
+    background-image:linear-gradient(100deg,#8a6a22 0%,#c9a24a 14%,#fff6dd 28%,#e6cf96 40%,
+                     #c9a24a 54%,#fff8e3 68%,#e6cf96 82%,#8a6a22 100%);
+    background-size:230% 100%;-webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;color:transparent;
+    animation:corre 7s linear infinite;
+  }
+  @keyframes corre{from{background-position:230% 0}to{background-position:-30% 0}}
+  #subtitulo{color:var(--goldl);font-size:12px;letter-spacing:5px;text-transform:uppercase;opacity:.75}
+  .risco{width:150px;height:1px;margin:14px 0 0;
+         background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+  @media (prefers-reduced-motion:reduce){
+    .diamante .pedra,.diamante .lampejo,.diamante .faisca,#titulo{animation:none}
+    #titulo{-webkit-text-fill-color:#e6cf96;color:#e6cf96}
+  }
 
   #marcas{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
   .chip{appearance:none;border:1.5px solid rgba(201,162,74,.45);background:rgba(255,255,255,.05);color:#e7ecf5;
@@ -97,17 +125,42 @@
 <!-- ================== CONFIGURACOES ================== -->
 <script>
   const CONFIG = {
-    // Marcas deste mural, nesta ordem (aparecem mesmo sem foto na pasta ainda).
-    marcas: ["ALINARE", "GRACE"],
+    // ---------------- AS TRES CAMADAS ----------------
+    // Cada camada e um link. NAO renomeie as chaves (principal/grace/novitah):
+    // os arquivos grace.html e novitah.html apontam para elas.
+    //   .../             -> principal
+    //   .../grace.html   -> grace
+    //   .../novitah.html -> novitah
+    // "chaves" sao as pastas dentro de FOTOS\ (MARCA e MARCA/LANCAMENTO).
+    camadas: {
+      principal: {
+        titulo: "Alinare e Grace",
+        todas: true,          // esta camada tem o botao TODAS
+        botoes: [
+          { rotulo: "LANÇAMENTO", chaves: ["ALINARE/LANCAMENTO", "GRACE/LANCAMENTO"] },
+          { rotulo: "ALINARE",    chaves: ["ALINARE"] },
+          { rotulo: "GRACE",      chaves: ["GRACE"] }
+        ]
+      },
+      grace: {
+        titulo: "Grace",
+        todas: false,         // sem botao TODAS, como voce pediu
+        botoes: [
+          { rotulo: "LANÇAMENTO", chaves: ["GRACE/LANCAMENTO"] },
+          { rotulo: "GRACE",      chaves: ["GRACE"] }
+        ]
+      },
+      novitah: {
+        titulo: "Novitah",
+        todas: false,         // sem botao TODAS, como voce pediu
+        botoes: [
+          { rotulo: "NOVITAH",    chaves: ["NOVITAH"] },
+          { rotulo: "LANÇAMENTO", chaves: ["NOVITAH/LANCAMENTO"] }
+        ]
+      }
+    },
+    camadaPadrao: "principal",
 
-    // true  = mostra SOMENTE as marcas da linha acima
-    // false = qualquer pasta nova dentro de FOTOS\ tambem ganha botao
-    apenasEstas: true,
-
-    // Da para abrir um mural de outra marca pelo endereco, sem mexer aqui:
-    //    .../?marcas=NOVITAH          -> so NOVITAH
-    //    .../?marcas=ALINARE,GRACE    -> as duas
-    // O atalho pronto para a NOVITAH e o arquivo novitah.html.
     mostrarControles: true, // setas nas laterais + botao Inicio no topo
 
     segundos: 3,            // tempo de cada foto
@@ -154,11 +207,46 @@
 
 <div id="inicio">
   <div class="card">
-    <div class="ic">&#128142;</div>
-    <h1>Mural Azime</h1>
-    <div class="sub" id="subtitulo">Joias que ficam</div>
+    <div class="marca">
+      <svg class="diamante" viewBox="0 0 120 120" aria-hidden="true">
+        <defs>
+          <linearGradient id="ouro" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%"   stop-color="#fff8e3"/>
+            <stop offset="42%"  stop-color="#e6cf96"/>
+            <stop offset="100%" stop-color="#b8912f"/>
+          </linearGradient>
+          <linearGradient id="clarao" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%"   stop-color="#fff" stop-opacity="0"/>
+            <stop offset="50%"  stop-color="#fff" stop-opacity=".9"/>
+            <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+          </linearGradient>
+          <clipPath id="corte"><polygon points="60,20 94,44 60,104 26,44"/></clipPath>
+        </defs>
 
-    <div class="ask" id="pergunta">Quais fotos você quer que passem?</div>
+        <g class="pedra">
+          <polygon points="60,20 94,44 60,104 26,44" fill="url(#ouro)"/>
+          <polygon points="60,20 94,44 60,44"        fill="#fff8e3" opacity=".55"/>
+          <polygon points="60,20 26,44 60,44"        fill="#c9a24a" opacity=".45"/>
+          <polygon points="26,44 60,104 60,44"       fill="#fff6dd" opacity=".28"/>
+          <polygon points="94,44 60,104 60,44"       fill="#8a6a22" opacity=".30"/>
+          <polyline points="26,44 94,44" stroke="#fff8e3" stroke-opacity=".6" fill="none" stroke-width="1.2"/>
+          <g clip-path="url(#corte)">
+            <rect class="lampejo" x="10" y="10" width="34" height="120" fill="url(#clarao)" transform="rotate(18 60 60)"/>
+          </g>
+        </g>
+
+        <path class="faisca" d="M60 2 L62.5 13 L60 24 L57.5 13 Z"       fill="#fff8e3"/>
+        <path class="faisca" d="M112 44 L101 46.5 L90 44 L101 41.5 Z"   fill="#fff8e3"/>
+        <path class="faisca" d="M8 40 L19 42.5 L30 40 L19 37.5 Z"       fill="#e6cf96"/>
+        <path class="faisca" d="M98 96 L100.5 88 L103 96 L100.5 104 Z"  fill="#fff8e3"/>
+      </svg>
+
+      <h1 id="titulo">Alinare e Grace</h1>
+      <div id="subtitulo">Joias que ficam</div>
+      <div class="risco"></div>
+    </div>
+
+    <div class="ask" id="pergunta">O que você quer que passe?</div>
     <div id="marcas"></div>
 
     <button class="btn" id="iniciar" disabled>&#9654; Iniciar em tela cheia</button>
@@ -186,8 +274,9 @@
   const fade = Math.min(CONFIG.transicao == null ? 1.2 : CONFIG.transicao, dur / 2);
   layers.forEach(function(l){ l.style.setProperty('--fade', fade + 's'); });
 
-  let catalogo = {};      // { MARCA: [caminhos...] }
-  let selecao  = [];      // marcas escolhidas
+  let catalogo = {};      // { "MARCA" ou "MARCA/LANCAMENTO": [caminhos...] }
+  let camada   = null;    // a camada deste link (principal / grace / novitah)
+  let selecao  = [];      // rotulos de botao escolhidos
   let fotos    = [];      // playlist atual
   let idx = 0, cur = 0, timer = null, refreshTimer = null, rodando = false, wl = null;
   let token = 0;          // identifica o item atual: impede avanco em dobro no video
@@ -273,94 +362,102 @@
     return null;
   }
 
-  function qtDe(m){ return (catalogo[m] || []).length; }
+  /* ---------------- camadas ----------------
+     A camada vem do endereco: ?camada=grace. Sem parametro, usa a padrao.
+     ?marcas=NOVITAH continua funcionando, para nao quebrar link antigo.   */
+  function lerCamada(){
+    let p;
+    try{ p = new URLSearchParams(location.search); }catch(e){ p = null; }
+    const nomes = Object.keys(CONFIG.camadas || {});
+    function achar(txt){
+      if (!txt) return null;
+      const alvo = String(txt).trim().toLowerCase();
+      const k = nomes.filter(function(n){ return n.toLowerCase() === alvo; })[0];
+      return k ? CONFIG.camadas[k] : null;
+    }
+    const porCamada = achar(p && p.get('camada'));
+    if (porCamada) return porCamada;
 
-  // ?marcas=NOVITAH  ou  ?marcas=ALINARE,GRACE  manda mais que o CONFIG:
-  // e o que permite ter um link distinto por marca usando o mesmo arquivo
-  function marcasDaUrl(){
-    try{
-      const p = new URLSearchParams(location.search).get('marcas');
-      if (!p) return null;
-      const chaves = Object.keys(catalogo || {});
-      const lista = p.split(',').map(function(s){ return s.trim(); }).filter(Boolean).map(function(s){
-        const igual = chaves.filter(function(k){ return k.toLowerCase() === s.toLowerCase(); })[0];
-        return igual || s.toUpperCase();
-      });
-      return lista.length ? lista : null;
-    }catch(e){ return null; }
+    // compatibilidade com ?marcas=
+    const marcas = p && p.get('marcas');
+    if (marcas){
+      const porNome = achar(marcas);
+      if (porNome) return porNome;
+      // marca avulsa que nao tem camada montada: cria uma na hora
+      const bs = marcas.split(',').map(function(s){ return s.trim().toUpperCase(); }).filter(Boolean)
+                       .map(function(t){ return { rotulo: t, chaves: [t] }; });
+      if (bs.length) return { titulo: bs.map(function(b){ return b.rotulo; }).join(' e '), botoes: bs };
+    }
+    return CONFIG.camadas[CONFIG.camadaPadrao] || { titulo: 'Mural', botoes: [] };
   }
 
-  // 1o o endereco, depois o CONFIG, e so entao as pastas encontradas
-  function todasAsMarcas(){
-    const daUrl = marcasDaUrl();
-    if (daUrl) return daUrl;
-
-    const lista = (CONFIG.marcas || []).slice();
-    if (CONFIG.apenasEstas && lista.length) return lista;
-
-    Object.keys(catalogo || {}).forEach(function(m){
-      if (lista.indexOf(m) < 0) lista.push(m);
-    });
-    return lista;
+  function botoesDaCamada(){ return (camada && camada.botoes) || []; }
+  function qtDoBotao(b){
+    return (b.chaves || []).reduce(function(s, k){ return s + ((catalogo[k] || []).length); }, 0);
   }
-  // so estas podem ser escolhidas de fato
-  function marcasComFoto(){
-    return todasAsMarcas().filter(function(m){ return qtDe(m) > 0; });
+  function botoesComItem(){
+    return botoesDaCamada().filter(function(b){ return qtDoBotao(b) > 0; });
+  }
+  function botaoPorRotulo(r){
+    return botoesDaCamada().filter(function(b){ return b.rotulo === r; })[0] || null;
   }
 
   function montarBotoes(){
     const box = $('marcas');
     box.innerHTML = '';
-    const nomes = todasAsMarcas();
-    const comFoto = marcasComFoto();
+    const todos = botoesDaCamada();
+    const comItem = botoesComItem();
 
-    if (!comFoto.length){
-      $('pergunta').textContent = 'Nenhuma foto encontrada';
-      $('dica').innerHTML = 'Coloque as fotos em <code>FOTOS\\NOME-DA-MARCA</code> e rode o ' +
-                            '<code>Atualizar fotos.cmd</code>. Subpastas <b>SEM TRATAR</b>, ' +
-                            '<b>SEM EDIÇÃO</b>, <b>NÃO USAR</b> e <b>VÍDEOS</b> são ignoradas de propósito.';
+    if (!comItem.length){
+      $('pergunta').textContent = 'Nada para mostrar ainda';
+      $('dica').innerHTML = 'Suba as fotos pelo <b>Painel</b> (<code>Abrir painel.cmd</code>), ' +
+                            'ou coloque os arquivos em <code>FOTOS\\MARCA\\</code> e rode o ' +
+                            '<code>Atualizar fotos.cmd</code>.<br>Subpastas <b>SEM TRATAR</b>, ' +
+                            '<b>SEM EDIÇÃO</b> e <b>NÃO USAR</b> são ignoradas de propósito.';
       $('iniciar').disabled = true;
       return;
     }
 
-    // link de uma marca so (grace.html, novitah.html): nao faz sentido "TODAS"
-    // nem deixar desmarcar a unica marca que existe
-    const umaSo = comFoto.length === 1;
+    // com um botao so nao faz sentido "TODAS", nem deixar desmarcar o unico
+    const umSo = comItem.length === 1;
+    const querTodas = camada && camada.todas !== false;
 
     const itens = [];
-    if (!umaSo){
-      itens.push({chave:'*', rotulo:'TODAS', qt: comFoto.reduce(function(s,m){ return s + qtDe(m); }, 0)});
+    if (!umSo && querTodas){
+      itens.push({
+        rotulo: 'TODAS',
+        qt: comItem.reduce(function(s, b){ return s + qtDoBotao(b); }, 0)
+      });
     }
-    nomes.forEach(function(m){ itens.push({chave:m, rotulo:m, qt:qtDe(m)}); });
+    todos.forEach(function(b){ itens.push({ rotulo: b.rotulo, qt: qtDoBotao(b) }); });
 
     itens.forEach(function(it){
       const b = document.createElement('button');
       b.className = 'chip';
-      b.dataset.marca = it.chave;
-      const legenda = it.qt > 0 ? (it.qt + (it.qt === 1 ? ' foto' : ' fotos')) : 'aguardando fotos';
+      b.dataset.marca = it.rotulo === 'TODAS' ? '*' : it.rotulo;
+      const legenda = it.qt > 0 ? (it.qt + (it.qt === 1 ? ' item' : ' itens')) : 'aguardando fotos';
       b.innerHTML = it.rotulo + '<span class="qt">' + legenda + '</span>';
       if (it.qt === 0){
         b.disabled = true;
-        b.title = 'Sem foto tratada em FOTOS\\' + it.rotulo + ' ainda';
-      } else if (!umaSo){
-        b.addEventListener('click', function(){ alternar(it.chave); });
+        b.title = 'Nada em ' + it.rotulo + ' ainda';
+      } else if (!umSo){
+        b.addEventListener('click', function(){ alternar(b.dataset.marca); });
       }
       box.appendChild(b);
     });
 
-    if (umaSo){
+    if (umSo){
       $('pergunta').textContent = 'Pronto para começar';
-      $('dica').innerHTML = 'Toque em <b>Iniciar</b>. As fotos passam sozinhas, em loop.<br>' +
-                            'Na tela, as setas passam as fotos e <b>◀ Início</b> volta para cá.';
+      $('dica').innerHTML = 'Toque em <b>Iniciar</b>. Passa sozinho, em loop.<br>' +
+                            'Na tela, as setas passam os itens e <b>◀ Início</b> volta para cá.';
     }
 
     pintar();
   }
 
   function alternar(chave){
-    const nomes = marcasComFoto();
+    const nomes = botoesComItem().map(function(b){ return b.rotulo; });
     if (chave === '*'){
-      // TODAS liga tudo (ou desliga tudo, se ja estava tudo ligado)
       selecao = (selecao.length === nomes.length) ? [] : nomes.slice();
     } else if (selecao.indexOf(chave) >= 0){
       selecao = selecao.filter(function(m){ return m !== chave; });
@@ -372,7 +469,7 @@
   }
 
   function pintar(){
-    const nomes = marcasComFoto();
+    const nomes = botoesComItem().map(function(b){ return b.rotulo; });
     const todas = nomes.length > 0 && selecao.length === nomes.length;
     Array.prototype.forEach.call(document.querySelectorAll('.chip'), function(c){
       const m = c.dataset.marca;
@@ -380,7 +477,7 @@
     });
     const qt = montarPlaylist().length;
     $('iniciar').disabled = qt === 0;
-    $('iniciar').innerHTML = qt ? ('▶ Iniciar (' + qt + ' fotos)') : '▶ Iniciar em tela cheia';
+    $('iniciar').innerHTML = qt ? ('▶ Iniciar (' + qt + ' itens)') : '▶ Iniciar em tela cheia';
   }
 
   /* ---------- ordem da fila ----------
@@ -470,8 +567,12 @@
 
   function montarPlaylist(){
     const lista = [];
-    selecao.forEach(function(m){
-      (catalogo[m] || []).forEach(function(p){ lista.push(p); });
+    selecao.forEach(function(rotulo){
+      const b = botaoPorRotulo(rotulo);
+      if (!b) return;
+      (b.chaves || []).forEach(function(k){
+        (catalogo[k] || []).forEach(function(p){ lista.push(p); });
+      });
     });
     if (CONFIG.ordemInteligente === false) return lista;
 
@@ -480,10 +581,11 @@
     return intercalar(fs, vs);
   }
 
-  // uma chave por conjunto de marcas: o link da NOVITAH e o principal ficam
-  // com memorias separadas, senao um sobrescreve a escolha do outro
+  // uma chave por camada: cada link lembra a escolha dele, senao um
+  // sobrescreve a do outro (compartilham o mesmo dominio)
   function chaveGuardada(){
-    return 'muralAzime.marcas:' + todasAsMarcas().join('|');
+    return 'muralAzime.sel:' + (camada && camada.titulo) + '|' +
+           botoesDaCamada().map(function(b){ return b.rotulo; }).join(',');
   }
   function salvarSelecao(){
     try{ localStorage.setItem(chaveGuardada(), JSON.stringify(selecao)); }catch(e){}
@@ -491,7 +593,7 @@
   function lerSelecaoSalva(){
     try{
       const s = JSON.parse(localStorage.getItem(chaveGuardada()) || '[]');
-      const nomes = marcasComFoto();
+      const nomes = botoesComItem().map(function(b){ return b.rotulo; });
       return Array.isArray(s) ? s.filter(function(m){ return nomes.indexOf(m) >= 0; }) : [];
     }catch(e){ return []; }
   }
@@ -761,6 +863,12 @@
   /* ---------------- start ---------------- */
 
   (async function(){
+    // o nome da camada vira o titulo em dourado da tela inicial e da aba
+    camada = lerCamada();
+    $('titulo').textContent = camada.titulo || 'Mural';
+    $('subtitulo').textContent = CONFIG.logoSub || 'Joias que ficam';
+    document.title = camada.titulo || 'Mural';
+
     const cat = await lerCatalogo();
     if (!cat){
       $('pergunta').textContent = 'Lista de fotos não encontrada';
@@ -770,19 +878,11 @@
       return;
     }
     catalogo = cat;
-
-    // link de uma marca so (ex.: novitah.html): mostra o nome dela no subtitulo
-    const daUrl = marcasDaUrl();
-    if (daUrl && daUrl.length === 1){
-      $('subtitulo').textContent = daUrl[0];
-      document.title = 'Mural ' + daUrl[0].charAt(0) + daUrl[0].slice(1).toLowerCase();
-    }
-
     montarBotoes();
 
     // volta a selecao da ultima vez; se nao houver, comeca com TODAS
     const salva = lerSelecaoSalva();
-    selecao = salva.length ? salva : marcasComFoto().slice();
+    selecao = salva.length ? salva : botoesComItem().map(function(b){ return b.rotulo; });
     pintar();
 
     clearInterval(refreshTimer);

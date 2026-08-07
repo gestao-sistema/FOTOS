@@ -18,6 +18,13 @@ FOTOS/
 # ffmpeg portatil (~150 MB): ferramenta, nao faz parte do site
 _ferramentas/
 
+# servidor do painel: as dependencias se reinstalam com "npm install"
+node_modules/
+package-lock.json
+
+# SENHA do painel: nunca vai para o repositorio (que e publico)
+senha.txt
+
 # configuracao local de ferramentas
 .claude/
 

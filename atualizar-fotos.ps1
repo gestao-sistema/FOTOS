@@ -29,6 +29,11 @@ if (-not $Raiz)  { $Raiz  = Join-Path $Aqui 'FOTOS' }
 if (-not $Saida) { $Saida = $Aqui }
 
 $NomeCache = '_otimizadas'
+# Chave do grupo de lancamento, SEM ACENTO de proposito: o PowerShell 5.1 le
+# arquivo .ps1 como ANSI, e um literal acentuado aqui viraria lixo no fotos.json.
+# A pasta no disco pode se chamar "LANCAMENTO" ou "LANÇAMENTO" - a deteccao
+# ignora acento - e o botao no mural aparece escrito com o Ç, pelo index.html.
+$NomeLancamento = 'LANCAMENTO'
 
 # Extensoes que o navegador exibe
 $ExtFoto  = @('.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif')
@@ -134,11 +139,19 @@ foreach ($f in (Get-ChildItem -LiteralPath $raizFull -Recurse -File -ErrorAction
     }
   }
 
+  # a marca e a primeira pasta; LANCAMENTO virou um grupo separado dentro dela,
+  # para o mural poder ter um botao "LANCAMENTO" ao lado do botao da marca
+  $marca = if ($parts.Count -gt 1) { $parts[0] } else { 'GERAL' }
+  $ehLancamento = $false
+  for ($k = 1; $k -le $parts.Count - 2; $k++) {
+    if ((Remove-Acento $parts[$k]) -like '*lancamento*') { $ehLancamento = $true; break }
+  }
+
   [void]$selecionadas.Add([pscustomobject]@{
     arquivo = $f
     tipo    = $tipo
     rel     = ($rel -replace '\\', '/')
-    marca   = if ($parts.Count -gt 1) { $parts[0] } else { 'GERAL' }
+    marca   = if ($ehLancamento) { $marca + '/' + $NomeLancamento } else { $marca }
     chave   = (Chave-Natural $rel)
   })
 }
@@ -370,10 +383,12 @@ foreach ($it in ($selecionadas | Sort-Object chave)) {
   [void]$porMarca[$it.marca].Add($web + '?v=' + $selo)
 }
 
-# toda subpasta de FOTOS conta como marca, mesmo que ainda nao tenha nenhuma
-# foto tratada: assim o botao dela aparece no mural como "aguardando fotos"
+# toda subpasta de FOTOS conta como marca, e cada marca tem seu LANCAMENTO,
+# mesmo vazios: assim o botao aparece no mural escrito "aguardando fotos"
 foreach ($d in (Get-ChildItem -LiteralPath $raizFull -Directory -ErrorAction SilentlyContinue)) {
   if (-not $porMarca.ContainsKey($d.Name)) { $porMarca[$d.Name] = New-Object Collections.ArrayList }
+  $chaveLanc = $d.Name + '/' + $NomeLancamento
+  if (-not $porMarca.ContainsKey($chaveLanc)) { $porMarca[$chaveLanc] = New-Object Collections.ArrayList }
 }
 
 $marcas = [ordered]@{}
