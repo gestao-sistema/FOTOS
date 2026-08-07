@@ -222,8 +222,13 @@ app.get('/api/itens', (req, res) => {
   const pasta = String(req.query.pasta || '');
   if (!PASTAS_OK.has(pasta)) return res.status(400).json({ erro: 'destino inválido' });
 
+  // servidor sem os originais (o publicado, enquanto nao houver volume):
+  // avisa em vez de mostrar lista vazia, que parece defeito
+  if (!fs.existsSync(FOTOS)) {
+    return res.json({ itens: [], total: 0, noMural: 0, semOriginais: true });
+  }
   const dir = path.join(FOTOS, ...pasta.split('/'));
-  if (!fs.existsSync(dir)) return res.json({ itens: [] });
+  if (!fs.existsSync(dir)) return res.json({ itens: [], total: 0, noMural: 0 });
 
   // na raiz da marca, o que esta em LANCAMENTO nao entra: e outro destino
   const ehRaizDeMarca = !pasta.includes('/');
