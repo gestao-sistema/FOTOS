@@ -19,7 +19,23 @@ const fs   = require('fs');
 const path = require('path');
 const os   = require('os');
 const { spawn } = require('child_process');
-const sharp = require('sharp');
+
+/* O sharp e um binario nativo e pode nao carregar (versao de Node errada, por
+   exemplo). Carregar SO na hora de converter uma foto: assim uma falha dele
+   nao derruba o servidor - os murais continuam no ar e apenas o envio de
+   foto nova para de funcionar, com aviso. */
+let _sharp;
+function lerSharp() {
+  if (_sharp === undefined) {
+    try { _sharp = require('sharp'); }
+    catch (e) {
+      _sharp = null;
+      console.warn('  [aviso] sharp nao carregou: ' + e.message.split('\n')[0]);
+      console.warn('  [aviso] os murais seguem funcionando; foto nova nao sera redimensionada.');
+    }
+  }
+  return _sharp;
+}
 
 const RAIZ  = __dirname;
 const DADOS = process.env.DADOS_DIR || RAIZ;     // no Railway: o volume
@@ -181,6 +197,8 @@ function selecionar() {
 /* ------------------------------------------------------------- conversao */
 
 async function converterFoto(origem, destino) {
+  const sharp = lerSharp();
+  if (!sharp) throw new Error('sharp indisponível neste servidor');
   await sharp(origem, { failOn: 'none' })
     .rotate()                                   // respeita a orientacao da camera
     .resize({ width: MAX_PX, height: MAX_PX, fit: 'inside', withoutEnlargement: true })

@@ -9,7 +9,7 @@
     "preparar": "node preparar.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.9.0"
   },
   "dependencies": {
     "express": "^4.21.2",
