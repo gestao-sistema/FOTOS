@@ -130,6 +130,23 @@ Quando um vídeo entra, o mural toca ele INTEIRO (até os 15s) e só
 então passa para o próximo item — não corta em 3 segundos como foto.
 A seta ❯ corta o vídeo e vai para o próximo na hora.
 
+ORDEM DA FILA (repetidos separados)
+───────────────────────────────────
+Seu material tem o mesmo conteúdo em versões, em pastas irmãs:
+    VIDEOS\COM LOGO\FESTA.mp4
+    VIDEOS\SEM LOGO\FESTA.mp4
+    VIDEOS\TV\FESTA-TV.mp4
+Na ordem crua do Windows elas sairiam colidas — quem está na loja veria
+o mesmo vídeo 3 vezes seguidas. O mural reorganiza:
+
+  • vídeo NUNCA sai atrás de vídeo: eles ficam espalhados entre as fotos
+  • versões do mesmo conteúdo ficam a pelo menos ~12 itens de distância
+    (mais de 30 segundos), seja vídeo ou foto ("x.jpg" e "x-Editar.jpg")
+  • as fotos de uma mesma sessão continuam juntas, na ordem
+
+Nada é descartado — todas continuam passando, só em posições diferentes.
+Quer a ordem crua das pastas? Em index.html: ordemInteligente: false
+
 Quem faz a conversão é o ffmpeg, que está em _ferramentas\ (versão
 portátil, não foi instalado no Windows). Se apagar essa pasta, os
 vídeos deixam de entrar e o script avisa. Para trazer de volta, baixe

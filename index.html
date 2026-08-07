@@ -113,6 +113,11 @@
     segundos: 3,            // tempo de cada foto
     transicao: 0.8,         // duracao do cruzamento entre uma foto e a outra
     ordemAleatoria: false,  // true = embaralha as fotos
+
+    // true  = separa as versoes repetidas (COM LOGO/SEM LOGO/TV) e espalha
+    //         os videos no meio das fotos
+    // false = ordem crua das pastas, como estao no Windows
+    ordemInteligente: true,
     efeitoZoom: true,       // zoom suave (Ken Burns)
     mostrarRelogio: false,  // relogio + data no canto
     mostrarLogo: false,     // logo GRUPO AZIME no canto
@@ -378,12 +383,101 @@
     $('iniciar').innerHTML = qt ? ('▶ Iniciar (' + qt + ' fotos)') : '▶ Iniciar em tela cheia';
   }
 
+  /* ---------- ordem da fila ----------
+     O material vem em versoes do MESMO conteudo, em pastas irmas:
+        VIDEOS\COM LOGO\FESTA.mp4  ·  VIDEOS\SEM LOGO\FESTA.mp4  ·  VIDEOS\TV\FESTA-TV.mp4
+     Na ordem crua das pastas elas sairiam colidas, e quem esta na loja ve o
+     mesmo video 3 vezes seguidas. Aqui elas sao separadas, e os videos ficam
+     espalhados no meio das fotos em vez de virem em bloco.                  */
+
+  // identidade do conteudo, ignorando o que e so "versao"
+  function chaveGrupo(rel){
+    let s = String(rel).replace(/\?.*$/, '').replace(/^_otimizadas\//i, '');
+    const partes = s.split('/');
+    const arq = partes.pop() || '';
+    const pasta = partes.filter(function(p){
+      return !/^(com|sem)\s*logo$/i.test(p) && !/^tv$/i.test(p) && !/^v[íi]deos?$/i.test(p);
+    }).join('/').toLowerCase();
+    const nome = arq.replace(/\.[a-z0-9]+$/i, '').toLowerCase()
+      .replace(/\(?\s*(com|sem)\s*logo\s*\)?/g, '')
+      .replace(/[-_\s]*\btv\b/g, '')
+      .replace(/\b(copia|copiar|c[óo]pia|editar)\b/g, '')
+      .replace(/\(\s*\d+\s*\)/g, '')
+      .replace(/[^a-z0-9]+/g, '');
+    return pasta + '|' + nome;
+  }
+
+  // mantem a ordem natural (as fotos de uma sessao continuam juntas) e apenas
+  // ADIA quem repete um grupo visto nos ultimos 'janela' itens
+  function distribuir(lista, janela){
+    const W = janela || 12;
+    const saida = [], espera = [], recente = [];
+
+    function recenteTem(k){ return recente.indexOf(k) >= 0; }
+    function empurrar(rel){
+      saida.push(rel);
+      recente.push(chaveGrupo(rel));
+      if (recente.length > W) recente.shift();
+    }
+    function liberarUm(){
+      for (let i = 0; i < espera.length; i++){
+        if (!recenteTem(chaveGrupo(espera[i]))){ empurrar(espera.splice(i, 1)[0]); return true; }
+      }
+      return false;
+    }
+
+    // procura uma vaga com folga dos dois lados; usada para quem sobrou no fim
+    // (sem isso, um par que esta no final da pasta acabaria colado de novo)
+    function encaixar(rel){
+      const k = chaveGrupo(rel);
+      for (let p = saida.length; p >= 0; p--){
+        let choca = false;
+        for (let q = Math.max(0, p - W); q < Math.min(saida.length, p + W); q++){
+          if (chaveGrupo(saida[q]) === k){ choca = true; break; }
+        }
+        if (!choca){ saida.splice(p, 0, rel); return; }
+      }
+      saida.push(rel);
+    }
+
+    lista.forEach(function(rel){
+      liberarUm();
+      if (recenteTem(chaveGrupo(rel))) espera.push(rel);
+      else empurrar(rel);
+    });
+    // o que sobrou: primeiro tenta o fim, senao encaixa no meio
+    while (espera.length){
+      if (!liberarUm()) encaixar(espera.shift());
+    }
+    return saida;
+  }
+
+  // espalha os videos em intervalos iguais dentro das fotos
+  function intercalar(fs, vs){
+    if (!vs.length) return fs.slice();
+    if (!fs.length) return vs.slice();
+    const total = fs.length + vs.length;
+    const passo = total / vs.length;
+    const saida = [];
+    let vi = 0, fi = 0;
+    for (let pos = 0; pos < total; pos++){
+      const alvo = Math.floor((vi + 0.5) * passo);
+      if (vi < vs.length && (pos >= alvo || fi >= fs.length)) saida.push(vs[vi++]);
+      else if (fi < fs.length) saida.push(fs[fi++]);
+    }
+    return saida;
+  }
+
   function montarPlaylist(){
     const lista = [];
     selecao.forEach(function(m){
       (catalogo[m] || []).forEach(function(p){ lista.push(p); });
     });
-    return lista;
+    if (CONFIG.ordemInteligente === false) return lista;
+
+    const fs = distribuir(lista.filter(function(r){ return !ehVideo(r); }));
+    const vs = distribuir(lista.filter(function(r){ return  ehVideo(r); }));
+    return intercalar(fs, vs);
   }
 
   // uma chave por conjunto de marcas: o link da NOVITAH e o principal ficam
