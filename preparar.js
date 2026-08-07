@@ -259,15 +259,26 @@ async function preparar({ silencioso = false, aviso = () => {} } = {}) {
   const t0 = Date.now();
   const { escolhidos, ignorados, semSuporte, colisoes } = selecionar();
 
-  // TRAVA: sem originais, nao mexe em nada. Serve para o caso do servidor
-  // rodar onde a pasta FOTOS nao existe (ela nao vai para o repositorio):
-  // sem isso, a lista seria reescrita vazia e o mural ficaria sem nada.
-  if (!escolhidos.length) {
-    const jaTem = totalNaLista();
+  /* TRAVA contra apagar o mural por acidente.
+     O caso que motivou: no servidor publicado a pasta FOTOS nao existe (os
+     originais nao vao para o repositorio). Ao subir UMA foto pelo painel de
+     la, a preparacao veria 1 arquivo e reescreveria a lista com 1 item -
+     os 435 do mural desapareceriam.
+     Regra: se a lista fosse encolher para menos da metade, para. Apagar
+     algumas fotos pelo painel continua funcionando; um sumico em massa nao. */
+  const jaTem = totalNaLista();
+  const encolheDemais = jaTem > 20 && escolhidos.length < jaTem / 2;
+  if (!escolhidos.length || encolheDemais) {
     if (jaTem > 0) {
-      const msg = `  [trava] nenhum arquivo em ${FOTOS} - mantive a lista atual (${jaTem} itens) intacta`;
-      if (!silencioso) aviso(msg);
-      return { total: jaTem, naoMexeu: true, motivo: 'sem originais', segundos: 0,
+      const motivo = escolhidos.length
+        ? `so encontrei ${escolhidos.length} arquivos em FOTOS, contra ${jaTem} na lista atual`
+        : `nenhum arquivo em ${FOTOS}`;
+      if (!silencioso) {
+        aviso(`  [trava] ${motivo}`);
+        aviso(`  [trava] mantive a lista atual (${jaTem} itens) intacta, para nao apagar o mural.`);
+        aviso('  [trava] se a reducao e intencional, apague o fotos.json e rode de novo.');
+      }
+      return { total: jaTem, naoMexeu: true, motivo, segundos: 0,
                marcas: {}, qtFoto: 0, qtVideo: 0, feitas: 0, reaproveitadas: 0,
                falhas: 0, orfaos: 0, colisoes: 0, semFfmpeg: 0, semCopia: 0,
                ignorados: {}, semSuporte: {}, mbOrig: 0, mbLeve: 0 };
