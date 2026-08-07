@@ -350,9 +350,68 @@ function ipDaRede() {
   return null;
 }
 
-// se a lista ainda nao existe (ex.: volume novo no Railway), prepara ao subir
-if (!fs.existsSync(path.join(DADOS, 'fotos.json'))) {
-  console.log('  [inicio] sem fotos.json ainda: preparando...');
+/* ------------------------------------------------------- semear o volume
+   Quando DADOS_DIR aponta para um volume novo (Railway), ele nasce VAZIO: o
+   painel nao teria nada para listar nem excluir, e o mural ficaria sem fotos.
+   Aqui as 435 copias leves que vem no repositorio (~148 MB) sao copiadas
+   para dentro do volume, uma unica vez, virando o acervo de la.
+
+   Elas vao para FOTOS (como originais do volume) E para _otimizadas, esta
+   com data mais recente: assim a preparacao reaproveita e nao reprocessa,
+   sem perder qualidade num segundo redimensionamento.
+   Os originais de verdade (8 GB) seguem so no seu PC e no OneDrive.        */
+
+function contarArquivos(dir, limite = 1) {
+  let n = 0;
+  const ver = d => {
+    let itens = [];
+    try { itens = fs.readdirSync(d, { withFileTypes: true }); } catch (e) { return; }
+    for (const it of itens) {
+      if (n >= limite) return;
+      if (it.isDirectory()) ver(path.join(d, it.name));
+      else n++;
+    }
+  };
+  ver(dir);
+  return n;
+}
+
+function copiarArvore(de, para, marcarAgora) {
+  let itens = [];
+  try { itens = fs.readdirSync(de, { withFileTypes: true }); } catch (e) { return 0; }
+  let n = 0;
+  fs.mkdirSync(para, { recursive: true });
+  for (const it of itens) {
+    const a = path.join(de, it.name), b = path.join(para, it.name);
+    if (it.isDirectory()) n += copiarArvore(a, b, marcarAgora);
+    else {
+      fs.copyFileSync(a, b);
+      if (marcarAgora) { const t = new Date(); fs.utimesSync(b, t, t); }
+      n++;
+    }
+  }
+  return n;
+}
+
+function semear() {
+  if (DADOS === AQUI) return false;                       // sem volume: nada a fazer
+  const fonte = path.join(AQUI, '_otimizadas');
+  if (!fs.existsSync(fonte) || !contarArquivos(fonte)) return false;
+  if (contarArquivos(FOTOS)) return false;                // volume ja tem coisa
+
+  console.log('  [semear] volume vazio: copiando o acervo do repositorio...');
+  const a = copiarArvore(fonte, FOTOS, false);
+  const b = copiarArvore(fonte, path.join(DADOS, '_otimizadas'), true);
+  console.log(`  [semear] ${a} arquivos em FOTOS e ${b} em _otimizadas do volume`);
+  return true;
+}
+
+let semeou = false;
+try { semeou = semear(); } catch (e) { console.log('  [semear] falhou: ' + e.message); }
+
+// se a lista ainda nao existe (volume novo), prepara ao subir
+if (semeou || !fs.existsSync(path.join(DADOS, 'fotos.json'))) {
+  console.log('  [inicio] preparando a lista...');
   preparar();
 }
 
