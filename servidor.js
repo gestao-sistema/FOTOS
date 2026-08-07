@@ -29,7 +29,8 @@ const PORTA = Number(process.env.PORT || process.env.PORTA || 5500);
      1. variavel de ambiente PAINEL_SENHA  (e assim que se configura no Railway)
      2. arquivo senha.txt na pasta         (fica fora do repositorio, .gitignore)
    Se nenhum existir, o senha.txt e criado com a senha padrao combinada.     */
-const ARQ_SENHA = path.join(AQUI, 'senha.txt');
+// fora da pasta servida sempre que possivel (no Railway, dentro do volume)
+const ARQ_SENHA = path.join(DADOS, 'senha.txt');
 const SENHA_PADRAO = 'AZIME' + '2026';
 
 function lerSenha() {
@@ -303,7 +304,26 @@ app.get('/api/estado', (req, res) => {
 
 /* ---------------------------------------------------------------- paginas */
 
-app.get('/painel', protegido, (req, res) => res.sendFile(path.join(AQUI, 'painel.html')));
+/* NUNCA servir estes arquivos: o express.static entrega tudo que esta na
+   pasta, e sem esta trava o /senha.txt ficava publico - com a senha dentro. */
+const NEGADOS = [
+  /^\/senha\.txt$/i,
+  /^\/servidor\.js$/i,
+  /^\/preparar\.js$/i,
+  /^\/package(-lock)?\.json$/i,
+  /^\/node_modules\//i,
+  /^\/_ferramentas\//i,
+  /^\/\.(git|nvmrc|env)/i
+];
+app.use((req, res, next) => {
+  if (NEGADOS.some(r => r.test(req.path))) return res.status(404).end();
+  next();
+});
+
+// /painel e /painel.html: os dois pedem senha. Sem a segunda linha, o
+// static entregava o painel.html direto, contornando a protecao.
+app.get(/^\/painel(\.html)?$/i, protegido, (req, res) =>
+  res.sendFile(path.join(AQUI, 'painel.html')));
 
 // arquivos e lista saem de DADOS (no Railway, o volume); o resto e o codigo
 app.use('/_otimizadas', express.static(path.join(DADOS, '_otimizadas'), { maxAge: '7d' }));
